@@ -150,3 +150,4 @@ class enemigo(object):
                 self.tiempo = ahora
                 self.disparo = False
 
+

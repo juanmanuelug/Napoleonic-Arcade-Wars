@@ -25,7 +25,7 @@ class jugador(object):
         #posicion
         self.x = x
         self.y = y
-        #tamaño del jugador
+        #tamanio del jugador
         self.width = w
         self.height = h
         #velocidad
@@ -40,7 +40,7 @@ class jugador(object):
         self.disparo = False
         #recarga
         self.tiempo = pygame.time.get_ticks()
-        self.recarga = 3000
+        self.recarga = 1500
         #colision/superficie
         self.surface = Disparar_dch[0].convert()
         self.rect = self.surface.get_rect(center =(x,y))
@@ -169,7 +169,7 @@ class jugador(object):
                 self.tiempo = ahora
                 self.disparo = False
 
-    # # Método que comprueba la colision
+    # # Metodo que comprueba la colision
     def checkColision(self,enemigos):
         for enemigo in enemigos:
             if(self.rect.colliderect(enemigo)):

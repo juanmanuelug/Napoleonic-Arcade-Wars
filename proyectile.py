@@ -15,7 +15,7 @@ class proyectil(object):
         #superficie de colision
         self.surface = balaImg.convert()
         self.rect = self.surface.get_rect(center =(x,y))
-        #daño bala
+        #danio bala
         self.danio=25
         self.colision=False
 

@@ -113,7 +113,7 @@ def main():
     game_intro()
     while run:
         clock.tick(30)
-        # Si pulsamos lo de cerrar pestaña, se cierra
+        # Si pulsamos lo de cerrar pestania, se cierra
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -163,8 +163,7 @@ pygame.quit()
 quit()
 
 #####################WORKING IN:
-#1-Spawn Enemigos delay
 #2-Menu
 #3-barrita de vida
-#4-más tipos de enemigo
+#4-mas tipos de enemigo
 #5-puntuacion
