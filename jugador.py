@@ -173,4 +173,4 @@ class jugador(object):
     def checkColision(self,enemigos):
         for enemigo in enemigos:
             if(self.rect.colliderect(enemigo)):
-                self.vida-=1.0
+                self.vida-=3.5

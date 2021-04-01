@@ -3,8 +3,8 @@ import random
 import time
 
 from jugador import jugador
-from enemigo import enemigo
-from cadaver import cadaver
+from enemigo import enemigo, enemigoDistancia
+
 
 pygame.init()
 # ####################################### Constantes  ##################################################
@@ -46,13 +46,16 @@ def drawWindow():
     pygame.display.update()
 
 def spawnEnemies(enemies):
-    global ultimoTiempo
+    global ultimoTiempo, ultimoTiempoDistancia
     x = random.randint(0,500)
     y = random.randint(0,500)
     tiempo = time.perf_counter()
-    if tiempo - ultimoTiempo > 10:
+    if tiempo - ultimoTiempo > 7:
         enemies.append(enemigo(x,y,player.x,player.y))
         ultimoTiempo = time.perf_counter()
+    if tiempo - ultimoTiempoDistancia > 13:
+        enemies.append(enemigoDistancia(x,y,player.x,player.y))
+        ultimoTiempoDistancia = time.perf_counter()
 
 
 
@@ -101,13 +104,14 @@ def game_end():
 
 # ###########################################  Bucle del juego  ####################################################
 
-player = jugador(250, 250, 21, 35, 4, False, False, True, 0)
+player = jugador(250, 250, 21, 35, 3, False, False, True, 0)
 balas = []
 balasEnemigas = []
 #enemy = enemigo(0,0,player.x,player.y)
 enemies = []
 cadaveres = []
 ultimoTiempo = time.perf_counter()
+ultimoTiempoDistancia = time.perf_counter()
 def main():
     run = True
     game_intro()
@@ -141,7 +145,7 @@ def main():
             enemy.pathFinding(player.x,player.y)
             enemy.checkEstadoVida()
             if(enemy.vivo==False):
-                cadaveres.append(cadaver(enemy.x,enemy.y))
+                cadaveres.append(enemy)
                 enemies.pop(enemies.index(enemy))
 
 
