@@ -1,4 +1,5 @@
 import pygame
+import random
 from proyectile import proyectil
 from render import dibujar_anclado
 
@@ -6,6 +7,21 @@ pygame.init()
 # ####################################### Constantes  ##################################################
 WINX = 500
 WINY = 500
+# Milisegundos entre disparo y disparo de un tirador, y lo que se le ve el fogonazo
+RECARGA_ENEMIGO = 1500
+DURACION_FOGONAZO = 180
+# Margen de alineacion vertical con el que un tirador se da por encarado al jugador. Exigir la
+# misma y exacta hacia que casi nunca disparasen, porque el jugador se mueve de 3 en 3 pixeles
+TOLERANCIA_PUNTERIA = 6
+# Distancia a la que un tirador se planta para disparar en vez de seguir acercandose
+DISTANCIA_DE_TIRO = 180
+# Los cadaveres desaparecen al cabo de un rato y nunca hay mas de MAX_CADAVERES en pantalla
+DURACION_CADAVER = 12000
+MAX_CADAVERES = 20
+# Los enemigos aparecen por fuera del borde y nunca encima del jugador
+MARGEN_APARICION = 40
+DISTANCIA_MINIMA_APARICION = 150
+INTENTOS_APARICION = 8
 # #######################################   Sonidos  ###################################################
 sound_musket = pygame.mixer.Sound('./sonido/musket_shot04.wav')
 sound_musket.set_volume(0.2)
@@ -29,6 +45,43 @@ Andar_dch_Fr_cuerpo = [pygame.image.load('./sprites/franceses/soldado_fr_dch_cue
 
 cadaverImg = pygame.image.load('./sprites/franceses/cadaver.png')
 cadaverOficialImg= pygame.image.load('./sprites/franceses/cadaverOficialImg.png')
+# #######################################   Funciones   ###############################################
+
+def _puntoEnElBorde():
+    #un punto justo por fuera de uno de los cuatro bordes
+    lado = random.choice(('izquierda', 'derecha', 'arriba', 'abajo'))
+    if lado == 'izquierda':
+        return -MARGEN_APARICION, random.randint(0, WINY)
+    if lado == 'derecha':
+        return WINX + MARGEN_APARICION, random.randint(0, WINY)
+    if lado == 'arriba':
+        return random.randint(0, WINX), -MARGEN_APARICION
+    return random.randint(0, WINX), WINY + MARGEN_APARICION
+
+
+def _distanciaAlCuadrado(punto, otro):
+    return (punto[0] - otro[0]) ** 2 + (punto[1] - otro[1]) ** 2
+
+
+def puntoDeAparicion(xObjetivo, yObjetivo):
+    """Un punto del borde por el que entrar en batalla, lo bastante lejos del jugador."""
+    objetivo = (xObjetivo, yObjetivo)
+    candidatos = [_puntoEnElBorde() for _ in range(INTENTOS_APARICION)]
+    lejanos = [punto for punto in candidatos
+               if _distanciaAlCuadrado(punto, objetivo) >= DISTANCIA_MINIMA_APARICION ** 2]
+    if lejanos:
+        return random.choice(lejanos)
+    #si el jugador esta pegado a un borde puede que ninguno valga: se coge el mas lejano
+    return max(candidatos, key=lambda punto: _distanciaAlCuadrado(punto, objetivo))
+
+
+def cadaveresVigentes(cadaveres):
+    """Quita los cadaveres que ya han cumplido su tiempo y limita cuantos se acumulan."""
+    ahora = pygame.time.get_ticks()
+    vigentes = [cadaver for cadaver in cadaveres
+                if ahora - cadaver.instanteMuerte < DURACION_CADAVER]
+    return vigentes[-MAX_CADAVERES:]
+
 # #######################################   Clases   ##################################################
 
 #######Enemigos###############
@@ -42,6 +95,8 @@ class enemigo(object):
     CUERPO_DCH = pygame.Rect(3, 2, 21, 30)
     #Altura de la boca del mosquete respecto a la esquina de la caja del cuerpo
     ALTURA_CANON = 21
+    #Vida con la que aparece
+    VIDA_INICIAL = 75
 
     def __init__(self,x,y,xObjectiv,yObjectiv):
         self.x=x
@@ -60,8 +115,11 @@ class enemigo(object):
         #superficie de colision
         self.rect = self.CUERPO_IZQ.move(x, y)
         #vida
-        self.vida=75
+        self.vida=self.VIDA_INICIAL
+        self.vidaMaxima=self.VIDA_INICIAL
         self.vivo=True
+        #cuando cae, para que el cadaver no se quede en el campo para siempre
+        self.instanteMuerte=0
 
     def actualizarRect(self):
         #la caja de colision sigue al cuerpo dibujado, no al lienzo completo del sprite
@@ -115,15 +173,18 @@ class enemigo(object):
         self.vida-= danio
 
     def checkEstadoVida(self):
-        if(self.vida<=0):
+        if(self.vida<=0 and self.vivo):
             self.vivo=False
+            self.instanteMuerte=pygame.time.get_ticks()
 
     def disparar(self,bullets):
         #solo por herencia
         pass
 
     def dibujarCadaver(self,win):
-        win.blit(cadaverOficialImg, (self.x, self.y))
+        #anclado como el resto de sprites, para que caiga donde estaban sus pies
+        dibujar_anclado(win, cadaverOficialImg, self.x, self.y, self.izq,
+                        self.ANCHO_REFERENCIA, self.ALTO_REFERENCIA)
 
 ##Enemigo a distancia
 class enemigoDistancia(enemigo):
@@ -135,32 +196,46 @@ class enemigoDistancia(enemigo):
 
     def __init__(self,x,y,xObjectiv,yObjectiv):
         enemigo.__init__(self,x,y,xObjectiv,yObjectiv)
-        #para disparar
-        self.disparo = False
-        #recarga
-        self.tiempo = pygame.time.get_ticks()
-        self.recarga = 1500
+        #recarga: como la del jugador, el sello de tiempo se pone al disparar. Empieza recargando,
+        #asi no dispara a bocajarro en el mismo frame en que aparece
+        self.recarga = RECARGA_ENEMIGO
+        self.instanteUltimoDisparo = pygame.time.get_ticks()
+        #sin esto se le veria el fogonazo al aparecer, antes de haber disparado nada
+        self.haDisparado = False
+
+    def puedeDisparar(self, ahora):
+        return ahora - self.instanteUltimoDisparo >= self.recarga
+
+    def mostrandoFogonazo(self, ahora):
+        return self.haDisparado and ahora - self.instanteUltimoDisparo < DURACION_FOGONAZO
+
+    def encarado(self):
+        #a la altura del jugador con un margen, que es lo que le da linea de tiro
+        return abs(self.yObjectiv - self.y) <= TOLERANCIA_PUNTERIA
 
     def pathFinding(self,xObjectiv,yObjectiv):
         self.xObjectiv=xObjectiv
         self.yObjectiv=yObjectiv
-        if(self.yObjectiv!=self.y):
-            if(self.xObjectiv < self.x):
-                self.dch=False
-                self.izq=True
-                self.stop=False
-            else:
-                self.dch=True
-                self.izq=False
-                self.stop=False
-            if(self.yObjectiv<self.y):
+        #mira hacia el jugador siempre, tambien estando quieto: antes se quedaba con la
+        #orientacion con la que aparecio y disparaba hacia el lado contrario
+        self.izq = xObjectiv < self.x
+        self.dch = not self.izq
+        moviendose = False
+        #primero se pone a la altura del jugador
+        if not self.encarado():
+            if(yObjectiv < self.y):
                 self.y-=self.vel
-                self.stop=False
             else:
                 self.y+=self.vel
-                self.stop=False
-        else:
-            self.stop=True
+            moviendose = True
+        #y se acerca hasta tenerlo a tiro
+        if abs(xObjectiv - self.x) > DISTANCIA_DE_TIRO:
+            if(xObjectiv < self.x):
+                self.x-=self.vel
+            else:
+                self.x+=self.vel
+            moviendose = True
+        self.stop = not moviendose
         self.actualizarRect()
 
     def sprite(self):
@@ -170,30 +245,18 @@ class enemigoDistancia(enemigo):
             self.contadorCaminar = (self.contadorCaminar + 1) % 27
             return imagen
         secuencia = Disparar_izq_Fr if self.izq else Disparar_dch_Fr
-        return secuencia[1] if self.disparo else secuencia[0]
+        return secuencia[1] if self.mostrandoFogonazo(pygame.time.get_ticks()) else secuencia[0]
 
     def disparar(self,bullets):
-        if self.izq:
-            apuntando = -1
-        else:
-            apuntando = 1
-        if self.y==self.yObjectiv:
-            if self.disparo:
-                #recarga del arma para poder volver a disparar
-                ahora = pygame.time.get_ticks()
-                if ahora - self.tiempo >= self.recarga:
-                    self.tiempo = ahora
-                    self.disparo = False
-            else:
-                sound_musket.play()
-                self.disparo = True
-                bullets.append(proyectil(self.xCanon(), self.y + self.ALTURA_CANON, apuntando))
-        else:
-            ahora = pygame.time.get_ticks()
-            if ahora - self.tiempo >= self.recarga:
-                self.tiempo = ahora
-                self.disparo = False
-
+        ahora = pygame.time.get_ticks()
+        if not self.encarado() or not self.puedeDisparar(ahora):
+            return
+        self.instanteUltimoDisparo = ahora
+        self.haDisparado = True
+        sound_musket.play()
+        apuntando = -1 if self.izq else 1
+        bullets.append(proyectil(self.xCanon(), self.y + self.ALTURA_CANON, apuntando))
 
     def dibujarCadaver(self,win):
-        win.blit(cadaverImg, (self.x, self.y))
+        dibujar_anclado(win, cadaverImg, self.x, self.y, self.izq,
+                        self.ANCHO_REFERENCIA, self.ALTO_REFERENCIA)

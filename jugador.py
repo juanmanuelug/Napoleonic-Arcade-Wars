@@ -31,6 +31,8 @@ ALTURA_CANON = 21
 DURACION_FOGONAZO = 180
 # Milisegundos entre disparo y disparo
 RECARGA = 1500
+# Vida con la que empieza el soldado
+VIDA_MAXIMA = 100
 # Danio por chocar con un enemigo cuerpo a cuerpo y milisegundos de gracia entre golpe y golpe.
 # Sin esa espera el contacto restaba vida en CADA frame (3.5 x 30 fps = 105 de vida por segundo)
 DANIO_CONTACTO = 8
@@ -56,7 +58,8 @@ class jugador(object):
         #colision
         self.rect = pygame.Rect(x, y, ANCHO_CUERPO, ALTO_CUERPO)
         #Vida
-        self.vida = 100
+        self.vida = VIDA_MAXIMA
+        self.vidaMaxima = VIDA_MAXIMA
 
     # # Estado del arma
 
@@ -65,6 +68,12 @@ class jugador(object):
 
     def mostrandoFogonazo(self, ahora):
         return ahora - self.instanteUltimoDisparo < DURACION_FOGONAZO
+
+    def progresoRecarga(self, ahora):
+        #de 0 (acabo de disparar) a 1 (mosquete listo), para la barra de recarga
+        if self.recarga <= 0:
+            return 1.0
+        return min(1.0, (ahora - self.instanteUltimoDisparo) / float(self.recarga))
 
     def xCanon(self):
         if self.mirando_izq:

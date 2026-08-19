@@ -1,11 +1,11 @@
 import pygame
-import random
 import sys
 import time
 
 import colisiones
+import hud
 from jugador import jugador
-from enemigo import enemigo, enemigoDistancia
+from enemigo import enemigo, enemigoDistancia, puntoDeAparicion, cadaveresVigentes
 
 
 pygame.init()
@@ -13,6 +13,9 @@ pygame.init()
 WINX = 500
 WINY = 500
 FPS = 30
+# Cada cuanto entra en batalla un enemigo de cada tipo
+SEGUNDOS_ENTRE_APARICIONES = 7
+SEGUNDOS_ENTRE_APARICIONES_DISTANCIA = 13
 # Escenas del juego
 ESCENA_MENU = "menu"
 ESCENA_PARTIDA = "partida"
@@ -43,19 +46,21 @@ balas = []
 balasEnemigas = []
 enemies = []
 cadaveres = []
+puntuacion = 0
 ultimoTiempo = 0.0
 ultimoTiempoDistancia = 0.0
 
 
 def reiniciarPartida():
     # Deja el estado como recien empezada la batalla, para poder volver a jugar sin cerrar el juego
-    global player, balas, balasEnemigas, enemies, cadaveres
+    global player, balas, balasEnemigas, enemies, cadaveres, puntuacion
     global ultimoTiempo, ultimoTiempoDistancia
     player = jugador(250, 250)
     balas = []
     balasEnemigas = []
     enemies = []
     cadaveres = []
+    puntuacion = 0
     ultimoTiempo = time.perf_counter()
     ultimoTiempoDistancia = time.perf_counter()
 
@@ -68,6 +73,7 @@ def drawWindow():
     player.dibujar(win)
     for enemy in enemies:
         enemy.dibujarEnemigo(win)
+        hud.dibujarVidaEnemigo(win, enemy)
     #dibujar balas
     for bala in balas:
         bala.dibujar_bala(win)
@@ -76,20 +82,23 @@ def drawWindow():
         balaE.dibujar_bala(win)
     for cadaver in cadaveres:
         cadaver.dibujarCadaver(win)
+    # indicadores por encima de la batalla
+    hud.dibujarPanelJugador(win, player, puntuacion, WINX)
     # actualizacion de la pantalla
     pygame.display.update()
 
 def spawnEnemies(enemies):
+    # Cada tipo entra por su propio punto del borde, nunca encima del jugador
     global ultimoTiempo, ultimoTiempoDistancia
-    x = random.randint(0,500)
-    y = random.randint(0,500)
     tiempo = time.perf_counter()
-    if tiempo - ultimoTiempo > 7:
+    if tiempo - ultimoTiempo > SEGUNDOS_ENTRE_APARICIONES:
+        x, y = puntoDeAparicion(player.x, player.y)
         enemies.append(enemigo(x,y,player.x,player.y))
-        ultimoTiempo = time.perf_counter()
-    if tiempo - ultimoTiempoDistancia > 13:
+        ultimoTiempo = tiempo
+    if tiempo - ultimoTiempoDistancia > SEGUNDOS_ENTRE_APARICIONES_DISTANCIA:
+        x, y = puntoDeAparicion(player.x, player.y)
         enemies.append(enemigoDistancia(x,y,player.x,player.y))
-        ultimoTiempoDistancia = time.perf_counter()
+        ultimoTiempoDistancia = tiempo
 
 
 
@@ -141,6 +150,7 @@ def gameOver():
 
         win.blit(derrota_images, (0, 0))
         dibujarTextoCentrado("Has Muerto", FUENTE_DERROTA, 45)
+        dibujarTextoCentrado("Franceses abatidos: " + str(puntuacion), FUENTE_OPCION, 85)
         dibujarBandaOpciones()
         dibujarTextoCentrado("ENTER - Volver al menu", FUENTE_OPCION, WINY - 55, (255,255,255))
         dibujarTextoCentrado("ESC - Salir", FUENTE_OPCION, WINY - 28, (255,255,255))
@@ -148,7 +158,7 @@ def gameOver():
 
 # ###########################################  Bucle del juego  ####################################################
 def partida():
-    global balas, balasEnemigas, enemies
+    global balas, balasEnemigas, enemies, cadaveres, puntuacion
     while True:
         clock.tick(FPS)
         # Si pulsamos lo de cerrar la ventana, se cierra. Con ESC se vuelve al menu
@@ -169,6 +179,8 @@ def partida():
             enemy.checkEstadoVida()
         enemies, caidos = colisiones.separarCaidos(enemies)
         cadaveres.extend(caidos)
+        cadaveres = cadaveresVigentes(cadaveres)
+        puntuacion += len(caidos)
 
         keys = pygame.key.get_pressed()
         player.caminar(keys)
