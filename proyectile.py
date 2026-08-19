@@ -20,7 +20,6 @@ class proyectil(object):
         self.rect = CONTENIDO_BALA.move(self.x, self.y)
         #danio bala
         self.danio=25
-        self.colision=False
 
     def mover(self):
         self.x += self.vel
@@ -31,7 +30,3 @@ class proyectil(object):
 
     def dibujar_bala(self, win):
         win.blit(balaImg, (self.x, self.y))
-
-    def checkColission(self,personaje):
-        if(self.rect.colliderect(personaje)):
-            self.colision=True

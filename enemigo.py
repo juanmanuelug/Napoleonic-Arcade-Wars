@@ -110,10 +110,9 @@ class enemigo(object):
         dibujar_anclado(win, self.sprite(), self.x, self.y, self.izq,
                         self.ANCHO_REFERENCIA, self.ALTO_REFERENCIA)
 
-    def checkColision(self,bullets):
-        for bullet in bullets:
-            if(self.rect.colliderect(bullet)):
-                self.vida-= bullet.danio
+    def recibirImpacto(self,danio):
+        #el reparto de danio lo hace colisiones.resolverBalas, aqui solo se apunta
+        self.vida-= danio
 
     def checkEstadoVida(self):
         if(self.vida<=0):

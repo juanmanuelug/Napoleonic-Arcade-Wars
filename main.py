@@ -3,6 +3,7 @@ import random
 import sys
 import time
 
+import colisiones
 from jugador import jugador
 from enemigo import enemigo, enemigoDistancia
 
@@ -147,6 +148,7 @@ def gameOver():
 
 # ###########################################  Bucle del juego  ####################################################
 def partida():
+    global balas, balasEnemigas, enemies
     while True:
         clock.tick(FPS)
         # Si pulsamos lo de cerrar la ventana, se cierra. Con ESC se vuelve al menu
@@ -156,38 +158,22 @@ def partida():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 return ESCENA_MENU
 
-        #balas
-        for bala in balas:
-            for enemy in enemies:
-                bala.checkColission(enemy)
-                enemy.checkColision(balas)
-            if (bala.colision == False and bala.en_pantalla(WINX)):
-                bala.mover()
-            else:
-                balas.pop(balas.index(bala))
-
-        for balaE in balasEnemigas:
-            balaE.checkColission(player)
-            if (balaE.colision == False and balaE.en_pantalla(WINX)):
-                balaE.mover()
-            else:
-                balasEnemigas.pop(balasEnemigas.index(balaE))
+        #balas: una sola pasada, cada bala impacta una vez y las listas se reconstruyen
+        balas = colisiones.resolverBalas(balas, enemies, WINX)
+        balasEnemigas = colisiones.resolverBalas(balasEnemigas, [player], WINX)
         #Enemigos
 
         for enemy in enemies:
             enemy.disparar(balasEnemigas)
             enemy.pathFinding(player.x,player.y)
             enemy.checkEstadoVida()
-            if(enemy.vivo==False):
-                cadaveres.append(enemy)
-                enemies.pop(enemies.index(enemy))
-
+        enemies, caidos = colisiones.separarCaidos(enemies)
+        cadaveres.extend(caidos)
 
         keys = pygame.key.get_pressed()
         player.caminar(keys)
         player.disparar(keys,balas)
-        player.checkColision(enemies)
-        player.checkColision(balasEnemigas)
+        player.sufrirContacto(enemies)
         spawnEnemies(enemies)
         drawWindow()
         ##Muerte del jugador

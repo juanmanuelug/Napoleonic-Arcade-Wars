@@ -31,6 +31,10 @@ ALTURA_CANON = 21
 DURACION_FOGONAZO = 180
 # Milisegundos entre disparo y disparo
 RECARGA = 1500
+# Danio por chocar con un enemigo cuerpo a cuerpo y milisegundos de gracia entre golpe y golpe.
+# Sin esa espera el contacto restaba vida en CADA frame (3.5 x 30 fps = 105 de vida por segundo)
+DANIO_CONTACTO = 8
+GRACIA_CONTACTO = 500
 ######Jugador################
 class jugador(object):
     def __init__(self, x, y):
@@ -47,6 +51,8 @@ class jugador(object):
         #recarga: el sello de tiempo se pone en el instante del disparo, no al acabar la recarga
         self.recarga = RECARGA
         self.instanteUltimoDisparo = pygame.time.get_ticks() - RECARGA
+        #ultimo golpe recibido por contacto, para no restar vida en cada frame
+        self.instanteUltimoGolpe = pygame.time.get_ticks() - GRACIA_CONTACTO
         #colision
         self.rect = pygame.Rect(x, y, ANCHO_CUERPO, ALTO_CUERPO)
         #Vida
@@ -112,8 +118,17 @@ class jugador(object):
         apuntando = -1 if self.mirando_izq else 1
         balas.append(proyectil(self.xCanon(), self.y + ALTURA_CANON, apuntando))
 
-    # # Metodo que comprueba la colision
-    def checkColision(self,enemigos):
+    # # Danio recibido de una bala: un impacto, un mordisco de vida
+    def recibirImpacto(self, danio):
+        self.vida -= danio
+
+    # # Danio recibido por tener un enemigo encima, como mucho uno cada GRACIA_CONTACTO ms
+    def sufrirContacto(self, enemigos):
+        ahora = pygame.time.get_ticks()
+        if ahora - self.instanteUltimoGolpe < GRACIA_CONTACTO:
+            return
         for enemigo in enemigos:
-            if(self.rect.colliderect(enemigo)):
-                self.vida-=3.5
+            if self.rect.colliderect(enemigo.rect):
+                self.vida -= DANIO_CONTACTO
+                self.instanteUltimoGolpe = ahora
+                return
