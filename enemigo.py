@@ -1,5 +1,6 @@
 import pygame
 from proyectile import proyectil
+from render import dibujar_anclado
 
 pygame.init()
 # ####################################### Constantes  ##################################################
@@ -33,12 +34,21 @@ cadaverOficialImg= pygame.image.load('./sprites/franceses/cadaverOficialImg.png'
 #######Enemigos###############
 ##Enemigo BASE
 class enemigo(object):
+    #Lienzo de referencia de sus sprites (los de cuerpo a cuerpo miden 30x32) y caja del
+    #cuerpo dentro de ese lienzo: excluye la bayoneta, que sobresale por el lado al que mira
+    ANCHO_REFERENCIA = 30
+    ALTO_REFERENCIA = 32
+    CUERPO_IZQ = pygame.Rect(6, 2, 21, 30)
+    CUERPO_DCH = pygame.Rect(3, 2, 21, 30)
+    #Altura de la boca del mosquete respecto a la esquina de la caja del cuerpo
+    ALTURA_CANON = 21
+
     def __init__(self,x,y,xObjectiv,yObjectiv):
         self.x=x
         self.y=y
         self.vel=1
         #Para controlar el sprite que va apareciendo cuando camina
-        self.ContadorCaminar=0
+        self.contadorCaminar=0
         #Orientacion donde mira
         self.dch=False
         self.izq=True
@@ -48,11 +58,20 @@ class enemigo(object):
         self.yObjectiv=yObjectiv
         self.contadorPath=0
         #superficie de colision
-        self.surface=Andar_izq_Fr_cuerpo[0].convert()
-        self.rect = self.surface.get_rect(center =(x,y))
+        self.rect = self.CUERPO_IZQ.move(x, y)
         #vida
         self.vida=75
         self.vivo=True
+
+    def actualizarRect(self):
+        #la caja de colision sigue al cuerpo dibujado, no al lienzo completo del sprite
+        cuerpo = self.CUERPO_IZQ if self.izq else self.CUERPO_DCH
+        self.rect = cuerpo.move(self.x, self.y)
+
+    def xCanon(self):
+        if self.izq:
+            return self.rect.left
+        return self.rect.right
 
     def pathFinding(self,xObjectiv,yObjectiv):
         self.xObjectiv=xObjectiv
@@ -76,39 +95,20 @@ class enemigo(object):
                 self.stop=False
         else:
             self.stop=True
+        self.actualizarRect()
 
+    def sprite(self):
+        #sprite que toca este frame; la clase hija anade el disparo
+        if not self.stop:
+            secuencia = Andar_izq_Fr_cuerpo if self.izq else Andar_dch_Fr_cuerpo
+            imagen = secuencia[self.contadorCaminar // 3]
+            self.contadorCaminar = (self.contadorCaminar + 1) % 27
+            return imagen
+        return Andar_izq_Fr_cuerpo[0] if self.izq else Andar_dch_Fr_cuerpo[0]
 
     def dibujarEnemigo(self, win):
-        if self.ContadorCaminar + 1 >= 27:
-            self.ContadorCaminar = 0
-
-        if not self.stop:
-            if self.izq:
-                    #superficie de colision
-                self.surface=Andar_izq_Fr_cuerpo[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_izq_Fr_cuerpo[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
-            else:
-                    #superficie de colision
-                self.surface=Andar_dch_Fr_cuerpo[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_dch_Fr_cuerpo[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
-        else:
-            if self.dch:
-                #superficie de colision
-                self.surface=Andar_dch_Fr_cuerpo[0].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                #dibujado del sprite
-                win.blit(Andar_dch_Fr_cuerpo[0], (self.x, self.y))
-            else:
-                self.surface=Andar_izq_Fr_cuerpo[0].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                #dibujado del sprite
-                win.blit(Andar_izq_Fr_cuerpo[0], (self.x, self.y))
+        dibujar_anclado(win, self.sprite(), self.x, self.y, self.izq,
+                        self.ANCHO_REFERENCIA, self.ALTO_REFERENCIA)
 
     def checkColision(self,bullets):
         for bullet in bullets:
@@ -128,6 +128,12 @@ class enemigo(object):
 
 ##Enemigo a distancia
 class enemigoDistancia(enemigo):
+    #sus sprites de andar miden 20x36, igual que los del jugador
+    ANCHO_REFERENCIA = 20
+    ALTO_REFERENCIA = 36
+    CUERPO_IZQ = pygame.Rect(0, 0, 20, 36)
+    CUERPO_DCH = pygame.Rect(0, 0, 20, 36)
+
     def __init__(self,x,y,xObjectiv,yObjectiv):
         enemigo.__init__(self,x,y,xObjectiv,yObjectiv)
         #para disparar
@@ -156,53 +162,16 @@ class enemigoDistancia(enemigo):
                 self.stop=False
         else:
             self.stop=True
+        self.actualizarRect()
 
-
-    def dibujarEnemigo(self, win):
-        if self.ContadorCaminar + 1 >= 27:
-            self.ContadorCaminar = 0
-
+    def sprite(self):
         if not self.stop:
-            if self.izq:
-                    #superficie de colision
-                self.surface=Andar_izq_Fr[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_izq_Fr[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
-            else:
-                    #superficie de colision
-                self.surface=Andar_dch_Fr[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_dch_Fr[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
-        else:
-            if self.dch:
-                if self.disparo:
-                    #superficie de colision
-                    self.surface=Disparar_dch_Fr[1].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_dch_Fr[1], (self.x, self.y))
-                else:
-                    #superficie de colision
-                    self.surface=Disparar_dch_Fr[0].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_dch_Fr[0], (self.x, self.y))
-            else:
-                if self.disparo:
-                    #superficie de colision
-                    self.surface=Disparar_izq_Fr[1].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_izq_Fr[1], (self.x, self.y))
-                else:
-                    self.surface=Disparar_izq_Fr[0].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_izq_Fr[0], (self.x, self.y))
+            secuencia = Andar_izq_Fr if self.izq else Andar_dch_Fr
+            imagen = secuencia[self.contadorCaminar // 3]
+            self.contadorCaminar = (self.contadorCaminar + 1) % 27
+            return imagen
+        secuencia = Disparar_izq_Fr if self.izq else Disparar_dch_Fr
+        return secuencia[1] if self.disparo else secuencia[0]
 
     def disparar(self,bullets):
         if self.izq:
@@ -219,7 +188,7 @@ class enemigoDistancia(enemigo):
             else:
                 sound_musket.play()
                 self.disparo = True
-                bullets.append(proyectil(round(self.x + 20//2.5), round(self.y + 20//2.5 ), apuntando))
+                bullets.append(proyectil(self.xCanon(), self.y + self.ALTURA_CANON, apuntando))
         else:
             ahora = pygame.time.get_ticks()
             if ahora - self.tiempo >= self.recarga:

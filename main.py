@@ -1,5 +1,6 @@
 import pygame
 import random
+import sys
 import time
 
 from jugador import jugador
@@ -10,8 +11,14 @@ pygame.init()
 # ####################################### Constantes  ##################################################
 WINX = 500
 WINY = 500
+FPS = 30
+# Escenas del juego
+ESCENA_MENU = "menu"
+ESCENA_PARTIDA = "partida"
+ESCENA_GAME_OVER = "game_over"
+ESCENA_SALIR = "salir"
 # #######################################   Sonidos  ###################################################
-sound_intro = pygame.mixer.music.load('./music/marchaBritanica.wav')
+pygame.mixer.music.load('./music/marchaBritanica.wav')
 # ######################################  Texturas   #####################################################
 
 menu_images = pygame.image.load('./imgs/waterloo.jpg')
@@ -25,6 +32,32 @@ clock = pygame.time.Clock()
 win = pygame.display.set_mode((WINX, WINY))
 # ######################################   Nombre de la ventana       ########################################
 pygame.display.set_caption("Waterloo")
+# ######################################   Fuentes (una sola vez, no en cada frame)  ###########################
+FUENTE_TITULO = pygame.font.Font('freesansbold.ttf', 25)
+FUENTE_OPCION = pygame.font.Font('freesansbold.ttf', 18)
+FUENTE_DERROTA = pygame.font.Font('freesansbold.ttf', 50)
+# #####################################   Estado de la partida   ##############################################
+player = None
+balas = []
+balasEnemigas = []
+enemies = []
+cadaveres = []
+ultimoTiempo = 0.0
+ultimoTiempoDistancia = 0.0
+
+
+def reiniciarPartida():
+    # Deja el estado como recien empezada la batalla, para poder volver a jugar sin cerrar el juego
+    global player, balas, balasEnemigas, enemies, cadaveres
+    global ultimoTiempo, ultimoTiempoDistancia
+    player = jugador(250, 250)
+    balas = []
+    balasEnemigas = []
+    enemies = []
+    cadaveres = []
+    ultimoTiempo = time.perf_counter()
+    ultimoTiempoDistancia = time.perf_counter()
+
 # #######################################   Funciones    ######################################################
 
 def drawWindow():
@@ -42,7 +75,7 @@ def drawWindow():
         balaE.dibujar_bala(win)
     for cadaver in cadaveres:
         cadaver.dibujarCadaver(win)
-    # actualización de la pantalla
+    # actualizacion de la pantalla
     pygame.display.update()
 
 def spawnEnemies(enemies):
@@ -59,83 +92,84 @@ def spawnEnemies(enemies):
 
 
 
-# ########################################### Intro ################################################################
-def text_objects(text, font):
-    textSurface = font.render(text, True, (0,0,0))
-    return textSurface, textSurface.get_rect()
+# ########################################### Textos #############################################################
+def dibujarTextoCentrado(texto, fuente, y, color=(0,0,0)):
+    superficie = fuente.render(texto, True, color)
+    win.blit(superficie, superficie.get_rect(center=(WINX/2, y)))
 
-def game_intro():
+def dibujarBandaOpciones():
+    # Banda oscura al pie para que las opciones se lean sobre cualquier imagen
+    banda = pygame.Surface((WINX, 62), pygame.SRCALPHA)
+    banda.fill((0,0,0,160))
+    win.blit(banda, (0, WINY - 72))
 
-    intro = True
-    while intro:
-        pygame.mixer.music.play()
+# ########################################### Escenas ############################################################
+def menu():
+    pygame.mixer.music.play(-1)
+    while True:
+        clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+                return ESCENA_SALIR
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    pygame.mixer.music.stop()
+                    reiniciarPartida()
+                    return ESCENA_PARTIDA
+                if event.key == pygame.K_ESCAPE:
+                    return ESCENA_SALIR
 
         win.blit(menu_images, (0, 0))
-        largeText = pygame.font.Font('freesansbold.ttf',25)
-        TextSurf, TextRect = text_objects("La Batalla de Waterloo", largeText)
-        TextRect.center = ((WINX/2),(50/2))
-        win.blit(TextSurf, TextRect)
+        dibujarTextoCentrado("La Batalla de Waterloo", FUENTE_TITULO, 25)
+        dibujarBandaOpciones()
+        dibujarTextoCentrado("ENTER - A la batalla", FUENTE_OPCION, WINY - 55, (255,255,255))
+        dibujarTextoCentrado("ESC - Salir", FUENTE_OPCION, WINY - 28, (255,255,255))
         pygame.display.update()
-        clock.tick(float(0.1))
-        intro =False
-    pygame.mixer.music.stop()
 
-def game_end():
-
-    end = True
-    while end:
+def gameOver():
+    while True:
+        clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+                return ESCENA_SALIR
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    return ESCENA_MENU
+                if event.key == pygame.K_ESCAPE:
+                    return ESCENA_SALIR
 
         win.blit(derrota_images, (0, 0))
-        largeText = pygame.font.Font('freesansbold.ttf',50)
-        TextSurf, TextRect = text_objects("Has Muerto", largeText)
-        TextRect.center = ((WINX/2),(50/2))
-        win.blit(TextSurf, TextRect)
+        dibujarTextoCentrado("Has Muerto", FUENTE_DERROTA, 45)
+        dibujarBandaOpciones()
+        dibujarTextoCentrado("ENTER - Volver al menu", FUENTE_OPCION, WINY - 55, (255,255,255))
+        dibujarTextoCentrado("ESC - Salir", FUENTE_OPCION, WINY - 28, (255,255,255))
         pygame.display.update()
-        clock.tick(float(0.1))
-        end =False
 
 # ###########################################  Bucle del juego  ####################################################
-
-player = jugador(250, 250, 21, 35, 3, False, False, True, 0)
-balas = []
-balasEnemigas = []
-#enemy = enemigo(0,0,player.x,player.y)
-enemies = []
-cadaveres = []
-ultimoTiempo = time.perf_counter()
-ultimoTiempoDistancia = time.perf_counter()
-def main():
-    run = True
-    game_intro()
-    while run:
-        clock.tick(30)
-        # Si pulsamos lo de cerrar pestania, se cierra
+def partida():
+    while True:
+        clock.tick(FPS)
+        # Si pulsamos lo de cerrar la ventana, se cierra. Con ESC se vuelve al menu
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                return ESCENA_SALIR
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return ESCENA_MENU
 
         #balas
         for bala in balas:
             for enemy in enemies:
                 bala.checkColission(enemy)
                 enemy.checkColision(balas)
-            if (bala.colision == False and bala.x < WINX and bala.x > 0):
-                bala.x += bala.vel
+            if (bala.colision == False and bala.en_pantalla(WINX)):
+                bala.mover()
             else:
                 balas.pop(balas.index(bala))
 
         for balaE in balasEnemigas:
             balaE.checkColission(player)
-            if (balaE.colision == False and balaE.x < WINX and balaE.x > 0):
-                balaE.x += balaE.vel
+            if (balaE.colision == False and balaE.en_pantalla(WINX)):
+                balaE.mover()
             else:
                 balasEnemigas.pop(balasEnemigas.index(balaE))
         #Enemigos
@@ -158,16 +192,24 @@ def main():
         drawWindow()
         ##Muerte del jugador
         if(player.vida<=0):
-            game_end()
-            quit()
+            return ESCENA_GAME_OVER
+
+def main():
+    escena = ESCENA_MENU
+    while escena != ESCENA_SALIR:
+        if escena == ESCENA_MENU:
+            escena = menu()
+        elif escena == ESCENA_PARTIDA:
+            escena = partida()
+        else:
+            escena = gameOver()
 
 main()
 # ################################################   Fin   #####################################################
 pygame.quit()
-quit()
+sys.exit()
 
 #####################WORKING IN:
-#2-Menu
 #3-barrita de vida
 #4-mas tipos de enemigo
 #5-puntuacion

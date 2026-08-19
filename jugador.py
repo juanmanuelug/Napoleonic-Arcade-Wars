@@ -1,5 +1,6 @@
 import pygame
 from proyectile import proyectil
+from render import dibujar_anclado
 
 pygame.init()
 
@@ -19,155 +20,97 @@ Andar_dch = [pygame.image.load('./sprites/ingleses/soldado_ingles_dch_0.png'), p
 
 Disparar_izq = [pygame.image.load('./sprites/ingleses/soldado_ingles_izq_disparar_1.png'), pygame.image.load('./sprites/ingleses/soldado_ingles_izq_disparar.png')]
 Disparar_dch = [pygame.image.load('./sprites/ingleses/soldado_ingles_dch_disparar_1.png'), pygame.image.load('./sprites/ingleses/soldado_ingles_dch_disparar.png')]
+
+# Caja del cuerpo del soldado: es la referencia a la que se anclan todos sus sprites (el de
+# andar mide 20x36) y a la vez su caja de colision, para que la hitbox coincida con lo que se ve
+ANCHO_CUERPO = 20
+ALTO_CUERPO = 36
+# Altura de la boca del mosquete respecto a la esquina superior de la caja del cuerpo
+ALTURA_CANON = 21
+# Milisegundos que se ve el sprite del fogonazo despues de disparar
+DURACION_FOGONAZO = 180
+# Milisegundos entre disparo y disparo
+RECARGA = 1500
 ######Jugador################
 class jugador(object):
-    def __init__(self, x, y, w, h, v, i, d, s,cont):
-        #posicion
+    def __init__(self, x, y):
+        #posicion (esquina superior izquierda de la caja del cuerpo)
         self.x = x
         self.y = y
-        #tamanio del jugador
-        self.width = w
-        self.height = h
         #velocidad
-        self.vel = v
+        self.vel = 3
         #orientacion
-        self.izq = i
-        self.dch = d
+        self.mirando_izq = False
         #estado de movimiento
-        self.stop = s
-        self.ContadorCaminar = cont
-        #estado disparo
-        self.disparo = False
-        #recarga
-        self.tiempo = pygame.time.get_ticks()
-        self.recarga = 1500
-        #colision/superficie
-        self.surface = Disparar_dch[0].convert()
-        self.rect = self.surface.get_rect(center =(x,y))
+        self.caminando = False
+        self.contadorCaminar = 0
+        #recarga: el sello de tiempo se pone en el instante del disparo, no al acabar la recarga
+        self.recarga = RECARGA
+        self.instanteUltimoDisparo = pygame.time.get_ticks() - RECARGA
+        #colision
+        self.rect = pygame.Rect(x, y, ANCHO_CUERPO, ALTO_CUERPO)
         #Vida
-        self.vida=100
+        self.vida = 100
+
+    # # Estado del arma
+
+    def puedeDisparar(self, ahora):
+        return ahora - self.instanteUltimoDisparo >= self.recarga
+
+    def mostrandoFogonazo(self, ahora):
+        return ahora - self.instanteUltimoDisparo < DURACION_FOGONAZO
+
+    def xCanon(self):
+        if self.mirando_izq:
+            return self.x
+        return self.x + ANCHO_CUERPO
 
     # #Metodo de dibujar al jugador
+    # El sprite del fogonazo tiene prioridad sobre el de andar, asi que se ve el disparo
+    # aunque estemos en movimiento
 
     def dibujar(self, win):
-        if self.ContadorCaminar + 1 >= 27:
-            self.ContadorCaminar = 0
-
-        if not self.stop:
-            if self.izq:
-                    #superficie de colision
-                self.surface=Andar_izq[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_izq[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
-            else:
-                    #superficie de colision
-                self.surface=Andar_dch[self.ContadorCaminar//3].convert()
-                self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                win.blit(Andar_dch[self.ContadorCaminar//3], (self.x, self.y))
-                self.ContadorCaminar += 1
+        ahora = pygame.time.get_ticks()
+        if self.mostrandoFogonazo(ahora):
+            imagen = Disparar_izq[1] if self.mirando_izq else Disparar_dch[1]
+        elif self.caminando:
+            secuencia = Andar_izq if self.mirando_izq else Andar_dch
+            imagen = secuencia[self.contadorCaminar // 3]
+            self.contadorCaminar = (self.contadorCaminar + 1) % 27
         else:
-            if self.dch:
-                if self.disparo:
-                    #superficie de colision
-                    self.surface=Disparar_dch[1].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_dch[1], (self.x, self.y))
-                else:
-                    #superficie de colision
-                    self.surface=Disparar_dch[0].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_dch[0], (self.x, self.y))
-            else:
-                if self.disparo:
-                    #superficie de colision
-                    self.surface=Disparar_izq[1].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_izq[1], (self.x, self.y))
-                else:
-                    self.surface=Disparar_izq[0].convert()
-                    self.rect=self.surface.get_rect(center = (self.x,self.y))
-                    #dibujado del sprite
-                    win.blit(Disparar_izq[0], (self.x, self.y))
+            imagen = Disparar_izq[0] if self.mirando_izq else Disparar_dch[0]
+        dibujar_anclado(win, imagen, self.x, self.y, self.mirando_izq, ANCHO_CUERPO, ALTO_CUERPO)
 
     # #Metodo de caminar para el jugador
 
     def caminar(self, keys):
-        if keys[pygame.K_UP] and keys[pygame.K_RIGHT] and self.x < WINX - self.width - self.vel and self.y > self.vel:
-            self.x += self.vel
-            self.dch = True
-            self.stop = False
-            self.izq = False
-            self.y -= self.vel
-        elif keys[pygame.K_UP] and keys[pygame.K_LEFT] and self.x > self.vel and self.y > self.vel:
-            self.x -= self.vel
-            self.izq = True
-            self.stop = False
-            self.dch = False
-            self.y -= self.vel
-        elif keys[pygame.K_DOWN] and keys[pygame.K_RIGHT] and self.x < WINX - self.width - self.vel and self.y < WINY - self.height - self.vel:
-            self.x += self.vel
-            self.dch = True
-            self.stop = False
-            self.izq = False
-            self.y += self.vel
-        elif keys[pygame.K_DOWN] and keys[pygame.K_LEFT] and self.x > self.vel and self.y < WINY - self.height - self.vel:
-            self.x -= self.vel
-            self.izq = True
-            self.stop = False
-            self.dch = False
-            self.y += self.vel
-        elif keys[pygame.K_LEFT] and self.x > self.vel:
-            self.x -= self.vel
-            self.izq = True
-            self.stop = False
-            self.dch = False
-        elif keys[pygame.K_RIGHT] and self.x < WINX - self.width - self.vel:
-            self.x += self.vel
-            self.dch = True
-            self.stop = False
-            self.izq = False
-        elif keys[pygame.K_DOWN] and self.y < WINY - self.height - self.vel:
-            self.y += self.vel
-            self.stop = False
-            if not self.dch and not self.izq:
-                self.dch = True
-        elif keys[pygame.K_UP] and self.y > self.vel:
-            self.y -= self.vel
-            self.stop = False
-            if not self.dch and not self.izq:
-                self.dch = True
-        else:
-            self.stop = True
-            self.ContadorCaminar = 0
+        avanceX = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
+        avanceY = keys[pygame.K_DOWN] - keys[pygame.K_UP]
+        self.caminando = avanceX != 0 or avanceY != 0
+        if not self.caminando:
+            self.contadorCaminar = 0
+            return
+        if avanceX < 0:
+            self.mirando_izq = True
+        elif avanceX > 0:
+            self.mirando_izq = False
+        #los limites usan el tamanio real del cuerpo, no una medida inventada
+        self.x = min(max(0, self.x + avanceX * self.vel), WINX - ANCHO_CUERPO)
+        self.y = min(max(0, self.y + avanceY * self.vel), WINY - ALTO_CUERPO)
+        self.rect.topleft = (self.x, self.y)
 
     # #Metodo para disparar
-    def disparar(self,keys,bullets):
-        if self.izq:
-            apuntando = -1
-        else:
-            apuntando = 1
-        if keys[pygame.K_SPACE]:
-            if self.disparo:
-                #recarga del arma para poder volver a disparar
-                ahora = pygame.time.get_ticks()
-                if ahora - self.tiempo >= self.recarga:
-                    self.tiempo = ahora
-                    self.disparo = False
-            else:
-                sound_musket.play()
-                self.disparo = True
-                bullets.append(proyectil(round(self.x + self.width //2.5), round(self.y + self.height //2.5 ), apuntando))
-        else:
-            ahora = pygame.time.get_ticks()
-            if ahora - self.tiempo >= self.recarga:
-                self.tiempo = ahora
-                self.disparo = False
+
+    def disparar(self, keys, balas):
+        if not keys[pygame.K_SPACE]:
+            return
+        ahora = pygame.time.get_ticks()
+        if not self.puedeDisparar(ahora):
+            return
+        self.instanteUltimoDisparo = ahora
+        sound_musket.play()
+        apuntando = -1 if self.mirando_izq else 1
+        balas.append(proyectil(self.xCanon(), self.y + ALTURA_CANON, apuntando))
 
     # # Metodo que comprueba la colision
     def checkColision(self,enemigos):
