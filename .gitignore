@@ -1,0 +1,16 @@
+# Entorno de Python
+.venv/
+__pycache__/
+*.pyc
+
+# Visual Studio
+.vs/
+
+# Audio que sale de descomprimir music/marchaBritanica.zip (26 MB)
+music/marchaBritanica.wav
+
+# La marca personal, que es de cada maquina
+record.json
+
+# Capturas que generan las pruebas al ejecutarse
+pruebas/capturas/

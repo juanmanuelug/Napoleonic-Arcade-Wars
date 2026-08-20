@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Hoja de ruta de 33 tareas para Napoleonic Arcade Wars, ordenadas por dependencia.">
+<title>Plan de Batalla</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+
+<style>
+
+  /* reset minimo: los margenes de bloque los pone el layout, no el navegador */
+  h1, h2, h3, p, ol, ul, table, figure { margin: 0; }
+  ol, ul { padding: 0; }
+  :root {
+    /* neutros con sesgo verde: el campo de Waterloo, lavado */
+    --ground: #eceee7;
+    --surface: #f8f9f5;
+    --surface-2: #e3e6dd;
+    --line: #cdd2c6;
+    --line-soft: #dde1d6;
+    --ink: #161a15;
+    --ink-muted: #59614f;
+    --ink-faint: #7d856f;
+    /* escarlata britanico: el acento, y azul frances: el secundario */
+    --scarlet: #ab1f2a;
+    --scarlet-soft: #f3dcdd;
+    --navy: #24406e;
+    --navy-soft: #dbe2ef;
+    --powder: #8a6410;
+    --powder-soft: #f0e5c9;
+    --hecho: #2c6b3d;
+    --hecho-soft: #d9ebda;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "Barlow Condensed", "IBM Plex Sans", sans-serif;
+    --pixel: "Silkscreen", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #111410;
+      --surface: #191d17;
+      --surface-2: #21261e;
+      --line: #333a2f;
+      --line-soft: #272d23;
+      --ink: #e9ece3;
+      --ink-muted: #a3ab98;
+      --ink-faint: #7f8875;
+      --scarlet: #e4585f;
+      --scarlet-soft: #3a1a1d;
+      --navy: #8bacdf;
+      --navy-soft: #1b2537;
+      --powder: #d6a840;
+      --powder-soft: #322813;
+      --hecho: #7fc98f;
+      --hecho-soft: #1c2c20;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #111410;
+    --surface: #191d17;
+    --surface-2: #21261e;
+    --line: #333a2f;
+    --line-soft: #272d23;
+    --ink: #e9ece3;
+    --ink-muted: #a3ab98;
+    --ink-faint: #7f8875;
+    --scarlet: #e4585f;
+    --scarlet-soft: #3a1a1d;
+    --navy: #8bacdf;
+    --navy-soft: #1b2537;
+    --powder: #d6a840;
+    --powder-soft: #322813;
+    --hecho: #7fc98f;
+    --hecho-soft: #1c2c20;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  /* ---------- cabecera ---------- */
+  header { border-bottom: 3px solid var(--ink); padding-bottom: 1.75rem; }
+
+  .eyebrow {
+    font-family: var(--pixel);
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--scarlet);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: clamp(2.75rem, 8vw, 4.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 44ch;
+    margin: 1.25rem 0 0;
+    font-size: 1.0625rem;
+    color: var(--ink-muted);
+  }
+
+  /* ---------- leyenda ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.8125rem;
+    color: var(--ink-muted);
+  }
+  .legend div { display: flex; align-items: baseline; gap: 0.5rem; }
+  .legend b {
+    font-family: var(--pixel);
+    font-size: 0.625rem;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+  }
+
+  /* ---------- orden recomendado ---------- */
+  .orden { margin: 3.5rem 0 0; }
+
+  h2 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .orden p { color: var(--ink-muted); max-width: 62ch; margin: 0.5rem 0 1.5rem; }
+
+  .ruta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: stretch;
+    counter-reset: paso;
+  }
+  .ruta li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .ruta { list-style: none; padding: 0; margin: 0; }
+  .ruta li::before {
+    counter-increment: paso;
+    content: counter(paso);
+    font-family: var(--pixel);
+    font-size: 0.625rem;
+    color: var(--scarlet);
+  }
+  .ruta code {
+    font-family: var(--pixel);
+    font-size: 0.6875rem;
+    color: var(--ink);
+  }
+
+  /* ---------- niveles ---------- */
+  .nivel { margin-top: 3.5rem; }
+
+  .nivel-cab {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    gap: 1.25rem;
+    align-items: start;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .nivel-num {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 3rem;
+    line-height: 0.8;
+    color: var(--scarlet);
+    font-variant-numeric: tabular-nums;
+  }
+  .nivel-num span { display: block; font-family: var(--pixel); font-size: 0.5625rem; letter-spacing: 0.1em; color: var(--ink-faint); margin-top: 0.4rem; }
+
+  .nivel-cab h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+  .nivel-cab p { margin: 0.35rem 0 0; color: var(--ink-muted); max-width: 58ch; font-size: 0.9375rem; }
+
+  .tareas { display: flex; flex-direction: column; gap: 0; }
+
+  .tarea {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    gap: 1.25rem;
+    padding: 1.375rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .codigo {
+    font-family: var(--pixel);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+    padding-top: 0.3rem;
+    letter-spacing: 0.04em;
+  }
+
+  .tarea h3 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: 0.01em;
+    margin: 0 0 0.4rem;
+  }
+
+  .tarea p { margin: 0; color: var(--ink-muted); font-size: 0.9375rem; max-width: 64ch; }
+  .tarea p + p { margin-top: 0.5rem; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.75rem; }
+
+  .chip {
+    font-family: var(--pixel);
+    font-size: 0.5625rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid var(--line);
+    color: var(--ink-muted);
+    background: var(--surface);
+  }
+  .chip.esfuerzo { color: var(--ink); background: var(--surface-2); border-color: var(--line); }
+  .chip.alto { color: var(--scarlet); background: var(--scarlet-soft); border-color: transparent; }
+  .chip.desbloquea { color: var(--navy); background: var(--navy-soft); border-color: transparent; }
+  .chip.aviso { color: var(--powder); background: var(--powder-soft); border-color: transparent; }
+  .chip.hecho { color: var(--hecho); background: var(--hecho-soft); border-color: transparent; }
+  .tarea.hecha h3 { color: var(--ink-muted); }
+  .ruta li.hecho { color: var(--ink-faint); }
+  .ruta li.hecho code { color: var(--ink-faint); text-decoration: line-through; }
+  .ruta li.hecho::before { color: var(--hecho); }
+
+  code {
+    font-family: ui-monospace, "IBM Plex Mono", monospace;
+    font-size: 0.875em;
+    background: var(--surface-2);
+    padding: 0.1em 0.3em;
+  }
+
+  .medido {
+    border-left: 3px solid var(--navy);
+    background: var(--surface);
+    padding: 0.75rem 0.9rem;
+    margin-top: 0.85rem;
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+  }
+  .medido b { color: var(--ink); font-weight: 600; }
+
+  .tabla-wrap { overflow-x: auto; margin-top: 0.85rem; }
+  table { border-collapse: collapse; font-size: 0.875rem; min-width: 22rem; }
+  th, td { text-align: left; padding: 0.35rem 1.25rem 0.35rem 0; border-bottom: 1px solid var(--line-soft); }
+  th { font-family: var(--pixel); font-size: 0.5625rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 400; }
+  td:last-child { font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  /* ---------- cierre ---------- */
+  .fuera { margin-top: 3.5rem; padding: 1.5rem; background: var(--surface); border: 1px solid var(--line); }
+  .fuera h2 { font-size: 1.25rem; }
+  .fuera p { color: var(--ink-muted); margin: 0.5rem 0 0; max-width: 62ch; font-size: 0.9375rem; }
+
+  footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.8125rem; color: var(--ink-faint); }
+
+  @media (max-width: 34rem) {
+    .nivel-cab, .tarea { grid-template-columns: 1fr; gap: 0.5rem; }
+    .nivel-num { display: flex; align-items: baseline; gap: 0.75rem; font-size: 2.25rem; }
+    .nivel-num span { margin: 0; }
+    .codigo { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Napoleonic Arcade Wars · hoja de ruta</p>
+    <h1>Plan de<br>batalla</h1>
+    <p class="lede">Treinta y tres tareas para el juego, ordenadas por dependencia: cada nivel se apoya en el anterior. <strong>Hechos los niveles 0, 1, 2 y 3</strong> — los cuatro franceses nuevos (voltigeur, granadero lanzagranadas y oficial) salieron por cirugía de los sprites que ya había, sin dibujar ninguno de cero. Quedan cinco tareas: el jefe de la Guardia Imperial y el nivel 5, que es caro o necesita arte nuevo.</p>
+
+    <div class="legend">
+      <div><b>XS</b> menos de media hora</div>
+      <div><b>S</b> una o dos horas</div>
+      <div><b>M</b> media jornada</div>
+      <div><b>L</b> varias sesiones</div>
+    </div>
+  </header>
+
+  <section class="orden">
+    <h2>Por dónde empezar</h2>
+    <p>Los niveles son dependencias, no un calendario. Este es el orden que yo seguiría: primero blindar lo que ya funciona, después lo que más se nota por hora invertida, y solo entonces contenido nuevo.</p>
+    <ol class="ruta">
+      <li class="hecho"><code>T0.1</code> pruebas al repo</li>
+      <li class="hecho"><code>T0.3</code> pausa</li>
+      <li class="hecho"><code>T4.2</code> equilibrio</li>
+      <li class="hecho"><code>T0.5</code> techo de enemigos</li>
+      <li class="hecho"><code>T1.2</code> ventana x2</li>
+      <li class="hecho"><code>T1.1</code> impacto visible</li>
+      <li class="hecho"><code>T2.1–2.3</code> objetos</li>
+      <li class="hecho"><code>T3.1–3.4</code> franceses nuevos</li>
+      <li class="hecho"><code>T4.1</code> récord</li>
+    </ol>
+  </section>
+
+  <!-- ================= NIVEL 0 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">0<span>hecho</span></div>
+      <div>
+        <h2>Antes de añadir nada</h2>
+        <p>Trabajo que no se ve pero que protege o desbloquea todo lo de abajo. Cerrado: las pruebas viven en <code>pruebas/</code> con lanzador propio, ESC ya no te roba la partida y los franceses tienen techo.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T0.1</div>
+        <div>
+          <h3>Las pruebas, dentro del repo</h3>
+          <p>Las seis baterías que escribí (99 comprobaciones: escenas, colisiones, HUD, limpieza, ascensos y la escena de ascenso) viven en un directorio temporal de sesión y desaparecen con ella. Mover a <code>pruebas/</code> con un lanzador único que las corra todas y devuelva un código de salida.</p>
+          <p>Todas funcionan sin ventana (<code>SDL_VIDEODRIVER=dummy</code>) y con teclado y reloj simulados, así que sirven tal cual en cualquier máquina o en CI.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip">sin esto, cada cambio futuro es a ciegas</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T0.2</div>
+        <div>
+          <h3>.gitignore y requirements.txt</h3>
+          <p>Ahora mismo <code>.venv/</code>, <code>__pycache__/</code>, <code>.vs/</code> y el wav de 26 MB aparecen como sin trackear cada vez que abres git. Y la única dependencia real del proyecto (pygame 2.6.1) no está declarada en ninguna parte.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip">higiene</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T0.3</div>
+        <div>
+          <h3>Pausa de verdad</h3>
+          <p>Hoy ESC durante la partida te devuelve al menú y <b>pierdes la partida sin preguntar</b>. Lo puse yo como atajo de pruebas y es una trampa para el jugador. Pausa con el mismo velo oscuro que usa el ascenso: ENTER sigue, ESC abandona con confirmación.</p>
+          <p>La fontanería ya está hecha: <code>compensarPausa()</code> empuja todos los relojes de la partida, así que pausar no regala disparos ni apariciones.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T0.4</div>
+        <div>
+          <h3>Proyectil con vector</h3>
+          <p>La bala solo tiene velocidad en X (<code>self.vel = lado * 8</code>) y los límites se comprueban en un solo eje. Pasar a un vector (dx, dy) no cambia nada de lo que hay hoy y abre la puerta a granadas con arco, proyectiles diagonales y disparos enemigos que no vengan siempre en horizontal.</p>
+          <div class="chips"><span class="chip esfuerzo">S–M</span><span class="chip desbloquea">desbloquea T3.5 y T5.1</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T0.5</div>
+        <div>
+          <h3>Techo de enemigos simultáneos</h3>
+          <p>Los franceses aparecen para siempre y nadie los quita si no los mata el jugador. En la simulación de cinco minutos había <b>27 vivos y subiendo</b>, cada uno buscando ruta y dibujándose cada frame.</p>
+          <div class="medido"><b>Medido:</b> 5 vivos al minuto 0:38, 12 al 1:52, 19 al 3:08, 27 al 5:00.</div>
+          <p>Un <code>MAX_ENEMIGOS</code> (18 va bien) que ponga la aparición en espera al llegar al tope: mantiene la presión sin que el juego se ahogue.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= NIVEL 1 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">1<span>hecho</span></div>
+      <div>
+        <h2>Lo que más se nota por hora invertida</h2>
+        <p>Nada de contenido nuevo: el mismo juego, pero se siente el doble. Cerrado, incluido el sonido — que estaba marcado como bloqueado y salió adelante sintetizando los efectos en vez de añadir ficheros.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T1.1</div>
+        <div>
+          <h3>Impacto visible</h3>
+          <p>Ahora mismo aciertas a un francés y no pasa nada: la barrita baja y ya está. Un destello blanco de 100 ms sobre el que recibe el golpe (jugador incluido) es la diferencia entre disparar y sentir que disparas.</p>
+          <p>Con copias teñidas <b>cacheadas por sprite</b>, no generadas cada frame: ese error ya lo limpiamos una vez con los <code>convert()</code>.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T1.2</div>
+        <div>
+          <h3>Ventana al doble</h3>
+          <p>500×500 píxeles en un monitor de hoy es un sello de correos, y es lo primero que ve cualquiera al abrir el juego. Se sigue dibujando en 500×500 (cero cambios en el resto del código) y se presenta escalado, sin tocar un solo sprite.</p><p>La escala se calcula al arrancar preguntándole a SDL el tamaño del escritorio, para que la ventana no se salga nunca de la pantalla: en un escritorio de 1536×960 sale 1,5 (750×750), porque una ventana de 1000 de alto no cabe. <code>ESCALA_FORZADA</code> permite fijarla a mano.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T1.3</div>
+        <div>
+          <h3>Diagonal normalizada</h3>
+          <p>Moverse en diagonal aplica los 3 píxeles en los dos ejes, así que corres un 41% más rápido en diagonal que en recto. Viene del código original y no lo toqué para no cambiar el equilibrio a mitad de refactor; ahora es el momento.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip">corrección</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T1.4</div>
+        <div>
+          <h3>Empujón al recibir el plomo</h3>
+          <p>Cuatro o seis píxeles de retroceso al enemigo alcanzado. Confirma el acierto sin necesidad de números flotantes y, de paso, da un microsegundo de aire cuando te vienen encima.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip">sensación</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T1.5</div>
+        <div>
+          <h3>Capa de sonido</h3>
+          <p>Todo el juego sonaba a un único wav de mosquete. El impacto y la muerte ya suenan: se sintetizan en <code>sonidos.py</code> construyendo el buffer de audio a mano, sin ficheros ni dependencias nuevas. Queda pendiente solo la música de fondo para la batalla, que sí necesita una pista de verdad.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip aviso">falta la música de batalla</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T1.6</div>
+        <div>
+          <h3>La tropa ataca, y se ve</h3>
+          <p>Hecho. La tropa de cuerpo a cuerpo te quitaba vida por contacto sin mover un dedo. Ahora alza el sable y suelta el tajo, con dos fotogramas que <strong>ya estaban dibujados y no se usaban</strong>: la animación de andar solo gastaba del 2 al 6 de <code>cuerpoAcuerpo</code>, y el 0 y el 1 son el brazo extendido y el sable en alto.</p>
+          <p>El daño lo sigue haciendo el contacto, no el sable. Van al mismo compás porque la recarga del sable es exactamente la gracia de contacto del jugador, así que el tajo cae cuando pierdes vida. Y suelta un <strong>rastro de hoja</strong> (<code>sablazos.py</code>) que barre en vez de aparecer y apagarse, dibujado sobre la marcha como el fogonazo de la granada.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T1.7</div>
+        <div>
+          <h3>Cada uno muere con su cadáver</h3>
+          <p>Hecho. El granadero moría con el cadáver del soldado de línea, con chacó, aunque en pie lleve bonete de piel de oso. Tiene el suyo, sacado por cirugía del mismo cuerpo tirado con el bonete y el penacho, y sin cambiar el tamaño del lienzo para no descolocar a los que mueren mirando a la derecha.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= NIVEL 2 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">2<span>hecho</span></div>
+      <div>
+        <h2>Recompensa por matar</h2>
+        <p>Matar a un francés ya no solo da un punto de rango: sueltan cosas, y eso convierte cada muerte en una decisión. Cerrado, iconos incluidos — dibujados con primitivas, porque no había ni un sprite de objeto en el repo. Al recoger algo, un cartel dice qué es y qué da: un icono de 12×12 no puede explicarlo solo. Y no se gasta al pisarlo: va a una <strong>mochila de un solo hueco</strong> y se usa con <strong>Q</strong> cuando hace falta.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T2.1</div>
+        <div>
+          <h3>Módulo objetos.py</h3>
+          <p>Una clase con caja de colisión, icono, caducidad de unos 10 segundos con parpadeo en los dos últimos, y recogida al pisarlo. Reutiliza el convenio de caja del cuerpo y el patrón de listas que ya usan balas y cadáveres, así que encaja sin tocar el bucle.</p>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip desbloquea">desbloquea T2.2–T2.5</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T2.2</div>
+        <div>
+          <h3>Tabla de sueltas</h3>
+          <p>Probabilidad por tipo de enemigo, no una global: el recluta suelta poco, el granadero más, el oficial siempre. Es la palanca con la que se ajusta todo el ritmo del nivel sin tocar código.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T2.3</div>
+        <div>
+          <h3>Los cuatro objetos</h3>
+          <p>Cada uno responde a un aprieto distinto, para que recogerlos sea una decisión y no un reflejo:</p>
+          <div class="tabla-wrap">
+            <table>
+              <thead><tr><th>Objeto</th><th>Efecto</th><th>Para cuándo</th></tr></thead>
+              <tbody>
+                <tr><td>Vendas</td><td>+25 de vida</td><td>vas justo</td></tr>
+                <tr><td>Cartuchera</td><td>3 disparos sin recarga</td><td>te rodean</td></tr>
+                <tr><td>Aguardiente</td><td>inmune al contacto, 5 s</td><td>hay que cruzar</td></tr>
+                <tr><td>Estandarte</td><td>daño doble, 8 s</td><td>viene un granadero</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T2.4</div>
+        <div>
+          <h3>Iconos de los objetos</h3>
+          <p>No había ni un sprite de objeto en el repo, así que están dibujados con <code>pygame.draw</code>: caja blanca con cruz roja, cartuchera de cuero con correa y cierre, botella con etiqueta y estandarte con su cruz. A 12×12 y sobre hierba se leen bien. El día que dibujes los tuyos, basta con cambiar cuatro funciones de <code>objetos.py</code>.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip aviso">iconos procedurales, sustituibles por sprites</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T2.5</div>
+        <div>
+          <h3>Efectos activos en el HUD</h3>
+          <p>Un efecto temporal que no se ve es un efecto que no existe. Iconos con cuenta atrás bajo el panel de vida, con el mismo lenguaje de barras que ya tiene el HUD.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip">depende de T2.3</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= NIVEL 3 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">3<span>enemigos</span></div>
+      <div>
+        <h2>Más franceses, sin dibujar nada</h2>
+        <p>Hay dos tipos de enemigo y el juego se lee entero en veinte segundos. La clave para ampliar el bestiario sin arte nuevo es el tintado: la misma silueta con otro color y otros números se lee como otro soldado.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T3.1</div>
+        <div>
+          <h3>Variantes por tintado</h3>
+          <p>El tintado resultó inútil: el soldado es un 60% casi negro, y multiplicar negro por un color sigue dando negro — los tres saldrían idénticos. Lo que sí funciona es <strong>cirugía sobre el sprite</strong>: cambiarle el gorro y remapear colores concretos, heredando gratis la pose, el volumen y las siete animaciones. Con eso salió el granadero.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip">cirugia sobre el sprite, no tintado</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T3.2</div>
+        <div>
+          <h3>Granadero</h3>
+          <p>Hecho, y además es el <strong>lanzagranadas</strong> (lo que era T3.5): 150 de vida, más lento, con bonete de piel de oso y penacho rojo. 14 fotogramas de andar y 2 de lanzar, sacados por cirugía de tus sprites. Se planta en un anillo alrededor del jugador —ni tan lejos que no llegue, ni tan cerca que le pille su propio estallido— y no necesita ponerse a tu altura.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T3.3</div>
+        <div>
+          <h3>Voltigeur</h3>
+          <p>Hecho. Tirador de élite: velocidad 2 en vez de 1, puestos de tiro a 260 y 290 píxeles (los del soldado de línea llegan a 230) y recarga de 1100 ms en vez de 1500. Te dispara desde fuera de tu zona cómoda y te obliga a moverte en vez de plantarte a esperar. Aguanta lo mismo que una bayoneta: su amenaza es la posición, no el plomo que traga.</p>
+          <p>Sus 18 sprites salen por cirugía de los del soldado de línea, con penacho rojo y amarillo y banda en el chacó. Y <strong>no viene además del tirador, viene en vez de uno de ellos</strong>: uno de cada tres tiradores de la oleada entra como voltigeur, desde la cuarta. Así la oleada se hace más dura sin hacerse más larga.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T3.4</div>
+        <div>
+          <h3>Oficial</h3>
+          <p>Hecho. 100 de vida, no dispara ni lanza nada, y da un 50% de velocidad extra a los franceses que tenga a menos de 90 px: el primer enemigo al que te conviene disparar <em>antes</em> que al que tienes encima. Suelta objeto garantizado. Aparece en la oleada 5, y con <strong>tope de tres</strong>, porque el aura no se acumula y sin tope se comía a los tiradores en las oleadas altas.</p>
+          <p>El aura se recalcula entera cada frame en vez de ir sumando y restando, así que al caer el oficial la tropa vuelve sola a su velocidad sin llevar cuentas. Sus 14 sprites salen por cirugía de los de cuerpo a cuerpo, que ya eran una figura con sable: penacho dorado con punta blanca y banda dorada en el chacó.</p>
+          <p>Y el aura <strong>se ve</strong>: un anillo dorado a trozos pintado en el suelo, debajo de los soldados. A trozos y sin parpadear a propósito, para que no compita con la marca roja de la granada, que sí es una amenaza que hay que esquivar. Y los soldados a los que está acelerando llevan un <strong>halo dorado</strong> del mismo color: la silueta de su propio sprite pintada de oro y dibujada por debajo, así que el soldado se sigue leyendo igual.</p>
+          <p>Y cierra el cabo suelto: <code>cadaverOficialImg</code> ya es su cadáver, y la tropa de bayoneta pasa a morir con <code>cadaver.png</code>, que es el del soldado.</p>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T3.5</div>
+        <div>
+          <h3>Granadero lanzador</h3>
+          <p>Hecho. La granada no vuela con física: se lanza a un punto y tarda 1,5 s en caer, y mientras vuela <strong>el sitio donde va a caer está marcado con un círculo rojo que parpadea cada vez más rápido</strong>. Eso es lo que hace justa un arma de área: te avisa, y salirte depende de ti. Y sí, rompe la táctica única del juego: una granada no se esquiva cambiando de fila. El estallido <strong>no distingue bando</strong>: si te colocas bien, el granadero revienta a los suyos.</p>
+          <div class="chips"><span class="chip esfuerzo">M–L</span><span class="chip desbloquea">depende de T0.4</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T3.6</div>
+        <div>
+          <h3>Bestiario por rango</h3>
+          <p>Resuelta, pero <strong>por oleada en vez de por rango</strong>: al poner las oleadas cerradas, la composición de cada una se convirtió en el bestiario. Los granaderos entran desde la oleada 3, uno cada tres, y en las oleadas altas el relleno de bayonetas se cambia por élite. Hacerlo además por rango sería contar la dificultad dos veces.</p>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip">resuelta por otro camino</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T3.7</div>
+        <div>
+          <h3>Dispersión de los tiradores</h3>
+          <p>Todos se plantaban exactamente a 180 píxeles y a tu misma altura, así que acababan formando una fila perfecta. Hecho: cada tirador toma un <strong>puesto de tiro</strong> distinto (140 a 230 px, separados 30) preguntando cuáles están libres, con su propia tolerancia de puntería y su propio desfase de descarga. Y ahora <strong>retroceden</strong> si te les echas encima, en vez de quedarse clavados a bocajarro — sin salirse de la pantalla.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip">pulido de IA</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= NIVEL 4 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">4<span>forma</span></div>
+      <div>
+        <h2>Que la partida tenga forma</h2>
+        <p>Ahora la batalla es un grifo abierto: empieza, sube y acaba cuando mueres. Esto le da principio, medio y final, y una razón para volver a jugar.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T4.1</div>
+        <div>
+          <h3>Récord persistente</h3>
+          <p>Un arcade sin récord no engancha: cuando mueres no hay nada que superar. Hecho: <code>record.json</code> con bajas, rango y tiempo, en el menú y en la pantalla de derrota, con aviso de <em>nueva marca</em>. Un fichero corrupto o a medias se ignora sin impedir jugar.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T4.2</div>
+        <div>
+          <h3>Los dos ajustes de equilibrio ya medidos</h3>
+          <p>Calculé el tiempo mínimo hasta Coronel para un jugador que no falla un disparo, según el orden en que pida las mejoras:</p>
+          <div class="tabla-wrap">
+            <table>
+              <thead><tr><th>Orden elegido</th><th>Llega a Coronel</th></tr></thead>
+              <tbody>
+                <tr><td>Pólvora primero</td><td>1:35</td></tr>
+                <tr><td>Recarga primero</td><td>2:07</td></tr>
+                <tr><td>Coraza primero</td><td>3:30</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>La pólvora domina porque divide los disparos por francés (3 → 2 → 1, factor 3) mientras la recarga solo va de 1500 a 750 (factor 2). Hechos los dos arreglos: la pólvora no se ofrece hasta Brigada, así que las dos primeras elecciones son de verdad recarga contra coraza; y el primer ascenso cuesta 3 bajas en vez de 4. Se nota: el bot de pruebas, que antes moría sin ascender, ahora llega a Cabo a los 24 segundos.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip alto">impacto alto</span><span class="chip">dos constantes</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T4.3</div>
+        <div>
+          <h3>Puntos por tipo</h3>
+          <p>Hecho: una bayoneta vale 1, un tirador 2 y un granadero 4. Las bajas y los puntos son cosas distintas — las bajas son lo que se enseña y lo que guarda el récord; los puntos deciden el rango. Y los umbrales no están inventados: son <strong>exactamente los puntos acumulados de limpiar las oleadas 1 a 7</strong>, así que cada una de las siete primeras oleadas termina con un ascenso, justo en la calma.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T4.4</div>
+        <div>
+          <h3>Oleadas</h3>
+          <p>Hecho, con las cuatro decisiones tomadas: oleadas <strong>cerradas</strong> (hay que limpiar el cupo para pasar), <strong>infinitas</strong> y cada vez más largas, los ascensos siguen llegando en cuanto se cruza el umbral, y al superar una oleada cae una <strong>caja garantizada</strong> en el campo. El número de oleada sustituye al rango como eje de dificultad: tener las dos cosas la subía por partida doble.</p>
+          <p>El récord pasa a medirse por oleada alcanzada, con las bajas como desempate.</p>
+          <div class="chips"><span class="chip esfuerzo">M–L</span><span class="chip aviso">decisión tomada: cerradas e infinitas</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T4.5</div>
+        <div>
+          <h3>La Guardia Imperial</h3>
+          <p>Un jefe al llegar a Coronel: oficial escalado a 1,6, 600 de vida y escolta de granaderos. Ahora mismo el rango máximo es el final de la progresión pero no el final de la partida, que sigue hasta que te descuidas. Esto le pone un techo con recompensa.</p>
+          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip alto">impacto alto</span><span class="chip">desbloqueada: el oficial de T3.4 ya existe</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= NIVEL 5 ================= -->
+  <section class="nivel">
+    <div class="nivel-cab">
+      <div class="nivel-num">5<span>obras mayores</span></div>
+      <div>
+        <h2>Caro, o bloqueado por arte</h2>
+        <p>Ideas buenas cuyo coste real hay que saber antes de empezarlas. Las pongo aquí para que la decisión sea consciente, no para que se hagan.</p>
+      </div>
+    </div>
+
+    <div class="tareas">
+      <article class="tarea">
+        <div class="codigo">T5.1</div>
+        <div>
+          <h3>Disparo en ocho direcciones</h3>
+          <p>Es la mejora que más transformaría el juego: hoy solo se dispara a izquierda y derecha, y de ahí sale toda su táctica (alinearse en vertical). No hay sprites de soldado apuntando arriba o abajo, así que sin arte nuevo no hay forma honesta de hacerlo.</p>
+          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip aviso">bloqueado: hacen falta sprites</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T5.2</div>
+        <div>
+          <h3>Tiempo por delta en vez de por frame</h3>
+          <p>Todo está tuneado en píxeles por frame a 30 FPS: velocidades, balas, apariciones. Pasar a delta permitiría 60 FPS y movimiento fluido, pero reequilibra el juego entero y toca todos los módulos. Solo si el framerate te molesta de verdad.</p>
+          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip aviso">riesgo alto de reequilibrio</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T5.3</div>
+        <div>
+          <h3>Escenarios con obstáculos</h3>
+          <p>Muros, setos, un camino hundido: cambiaría por completo el arte de retirarse, que hoy es correr por una superficie vacía. Necesita tiles y una capa de colisión con el terreno que ahora no existe.</p>
+          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip aviso">necesita arte</span></div>
+        </div>
+      </article>
+
+      <article class="tarea">
+        <div class="codigo">T5.4</div>
+        <div>
+          <h3>Caballería</h3>
+          <p>Coraceros que cargan en línea recta y te obligan a apartarte en vez de a disparar. Sin sprite de caballo no hay manera de que se lea como caballería; escalar un soldado no engaña a nadie.</p>
+          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip aviso">bloqueado: hacen falta sprites</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fuera">
+    <h2>Lo que falta y no estaba escrito</h2>
+    <p><strong>La música de batalla.</strong> T1.5 quedó cerrada porque el impacto, la muerte, el objeto y el estallido se sintetizan, pero la pista de fondo sigue faltando y esa sí necesita un fichero de verdad.</p>
+    <p><strong>Los fotogramas de carga con bayoneta del granadero.</strong> Hoy usa los de andar, que es lo correcto porque lanza granadas y no carga. Si algún día quieres un granadero de bayoneta, sus <code>cuerpoAcuerpo</code> de 30×32 solo tienen dos filas libres sobre la cabeza y no cabe el bonete: habría que agrandar el lienzo.</p>
+  </section>
+
+  <section class="fuera">
+    <h2>Fuera del plan</h2>
+    <p>Multijugador, tabla de récords online y editor de niveles. Cada uno cuesta más que todo lo anterior junto y ninguno mejora la media hora que alguien va a pasar jugando a esto. Si algún día quieres uno, es un proyecto nuevo, no una tarea.</p>
+  </section>
+
+  <footer>
+    Estado a 20 de agosto de 2026 · cerrados: los seis bloques de la revisión, el progreso por rangos, los niveles 0, 1 y 2 de esta hoja de ruta y el ajuste de equilibrio (T4.2) · 383 comprobaciones automáticas en verde, en once baterías dentro de <code>pruebas/</code>
+  </footer>
+
+</div>
+</body>
+</html>

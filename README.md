@@ -9,6 +9,10 @@ First project in python.   It is a 2D arcade action game develop in python using
 - down arrow: move down
 - right arrow: move right
 - space: open fire
+- Q: use what you carry in your backpack
+- ESC: pause (press ESC twice to abandon the battle)
+- ENTER: confirm in the menus
+- 1 / 2 / 3: choose your upgrade when you are promoted
 
 ## Imagenes
 ### Main screen

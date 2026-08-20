@@ -5,12 +5,12 @@
 # El objetivo solo necesita tener un .rect y un metodo recibirImpacto(danio)
 
 
-def resolverBalas(balas, objetivos, ancho_pantalla):
+def resolverBalas(balas, objetivos, ancho_pantalla, alto_pantalla):
     """Mueve las balas, aplica el danio de los impactos y devuelve las que siguen volando."""
     siguen_volando = []
     for bala in balas:
         bala.mover()
-        if not bala.en_pantalla(ancho_pantalla):
+        if not bala.en_pantalla(ancho_pantalla, alto_pantalla):
             continue
         impactado = None
         for objetivo in objetivos:
@@ -20,7 +20,8 @@ def resolverBalas(balas, objetivos, ancho_pantalla):
         if impactado is None:
             siguen_volando.append(bala)
         else:
-            impactado.recibirImpacto(bala.danio)
+            #se pasa el lado del disparo para que el impacto empuje en esa direccion
+            impactado.recibirImpacto(bala.danio, bala.lado)
     return siguen_volando
 
 
