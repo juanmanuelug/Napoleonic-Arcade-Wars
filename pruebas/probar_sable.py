@@ -31,17 +31,37 @@ def unFrances(x=200, y=200, clase=E.enemigo):
     return frances
 
 
-# ---- 1. el contrato con el danio de contacto ----
-comprobar("el sable va al ritmo de la gracia de contacto del jugador",
-          E.RECARGA_SABLE == J.GRACIA_CONTACTO,
-          "sable %d ms, contacto %d ms" % (E.RECARGA_SABLE, J.GRACIA_CONTACTO))
-comprobar("el alzado y el tajo caben dentro de una recarga",
-          E.DURACION_ALZADO + E.DURACION_TAJO <= E.RECARGA_SABLE,
-          "%d + %d contra %d" % (E.DURACION_ALZADO, E.DURACION_TAJO, E.RECARGA_SABLE))
+def unJugador(x=200, y=200):
+    #el objetivo del sable es el jugador entero y no su caja: el tajo tiene que poder herirlo
+    return J.jugador(x, y)
+
+
+# ---- 1. el contrato del cuerpo a cuerpo: el tajo hace el danio, y avisa antes ----
+#el aviso se mide en FRAMES, que es lo que de verdad tiene el jugador para reaccionar
+FRAMES_MINIMOS_DE_AVISO = 15
+comprobar("el sable avisa lo bastante para verlo venir y apartarse",
+          E.DURACION_ALZADO >= FRAMES_MINIMOS_DE_AVISO * 1000 // 30,
+          "%d ms de aviso, o sea %d frames a 30 fps"
+          % (E.DURACION_ALZADO, E.DURACION_ALZADO * 30 // 1000))
+comprobar("y el tajo duele mas del doble que lo que costaba el contacto, porque se esquiva",
+          E.DANIO_SABLE > 2 * J.DANIO_CONTACTO,
+          "tajo %d, contacto %d" % (E.DANIO_SABLE, J.DANIO_CONTACTO))
+comprobar("entre dos tajos pasa mas de un segundo y medio: hay hueco para pegar y salir",
+          E.DURACION_ALZADO + E.RECARGA_SABLE >= 1500,
+          "%d de alzado + %d de recarga" % (E.DURACION_ALZADO, E.RECARGA_SABLE))
+
+primerSoldado = unJugador()
+primerFrances = unFrances()
+vidaDePartida = primerSoldado.vida
+for _ in range(60):
+    primerSoldado.sufrirContacto([primerFrances])
+comprobar("tocar a un sable no cuesta vida: lo que cuesta es quedarse cuando cae",
+          primerSoldado.vida == vidaDePartida,
+          "vida %d de %d" % (primerSoldado.vida, vidaDePartida))
 
 # ---- 2. lejos del jugador no saca el sable ----
 frances = unFrances()
-lejos = pygame.Rect(400, 400, 20, 36)
+lejos = unJugador(400, 400)
 frances.atacar(lejos, rastros)
 comprobar("sin nadie al alcance no alza el sable", not frances.alzandoSable)
 frances.stop = False
@@ -51,7 +71,7 @@ comprobar("y ensenia el sprite de andar",
 
 # ---- 3. con el jugador encima: alza, no avanza, y taja ----
 frances = unFrances()
-encima = frances.rect.copy()
+encima = unJugador(frances.x, frances.y)
 frances.atacar(encima, rastros)
 comprobar("con el jugador encima alza el sable", frances.alzandoSable)
 comprobar("y ensenia el sprite de alzar", frances.sprite() is E.Alzar_izq_Fr)
@@ -77,7 +97,7 @@ comprobar("vuelve al sprite de andar", frances.sprite() in E.Andar_izq_Fr_cuerpo
 
 # ---- 4. no taja dos veces sin recargar ----
 frances = unFrances()
-encima = frances.rect.copy()
+encima = unJugador(frances.x, frances.y)
 frances.atacar(encima, rastros)
 reloj['ms'] += E.DURACION_ALZADO
 frances.atacar(encima, rastros)
@@ -95,7 +115,7 @@ comprobar("y cumplida la recarga, vuelve a alzar", frances.alzandoSable)
 
 # ---- 5. mira al jugador aunque este alzando el sable ----
 frances = unFrances(x=200)
-frances.atacar(frances.rect.copy(), rastros)
+frances.atacar(unJugador(frances.x, frances.y), rastros)
 frances.pathFinding(400, 200)
 comprobar("con el jugador a su derecha, se gira aunque tenga el sable en alto",
           frances.dch and not frances.izq)
@@ -105,7 +125,7 @@ comprobar("y saca el sprite de alzar del lado bueno", frances.sprite() is E.Alza
 sinSable = []
 for clase in (E.enemigoDistancia, E.voltigeur, E.granadero):
     frances = unFrances(clase=clase)
-    frances.atacar(frances.rect.copy(), rastros)
+    frances.atacar(unJugador(frances.x, frances.y), rastros)
     if frances.alzandoSable or frances.PELEA_CON_SABLE:
         sinSable.append(clase.__name__)
 comprobar("el tirador, el voltigeur y el granadero no sacan sable",
@@ -118,26 +138,38 @@ lienzos = set(imagen.get_size() for imagen in
 comprobar("los fotogramas de sable miden lo mismo que los de andar, asi que el cuerpo no salta",
           len(lienzos) == 1, str(sorted(lienzos)))
 
-# ---- 8. el danio sigue siendo el de contacto, ni mas ni menos ----
-soldado = J.jugador(200, 200)
+# ---- 8. el tajo hace el danio, y solo si el jugador sigue ahi cuando cae ----
+soldado = unJugador(200, 200)
 frances = unFrances(x=200, y=200)
 vidaAntes = soldado.vida
-soldado.instanteUltimoGolpe = reloj['ms'] - J.GRACIA_CONTACTO
-#un segundo entero de sable encima, frame a frame
-for _ in range(30):
-    frances.atacar(soldado.rect, rastros)
-    frances.pathFinding(soldado.x, soldado.y)
-    soldado.sufrirContacto([frances])
-    reloj['ms'] += 33
-perdida = vidaAntes - soldado.vida
-comprobar("un segundo de sable encima quita lo mismo que antes: dos golpes de contacto",
-          perdida == 2 * J.DANIO_CONTACTO, "%d de vida en 990 ms" % perdida)
+frances.atacar(soldado, rastros)
+comprobar("mientras alza el sable todavia no ha quitado nada", soldado.vida == vidaAntes,
+          "vida %d" % soldado.vida)
+reloj['ms'] += E.DURACION_ALZADO
+frances.atacar(soldado, rastros)
+comprobar("al caer el tajo, quita DANIO_SABLE de una vez",
+          vidaAntes - soldado.vida == E.DANIO_SABLE, "%d de vida" % (vidaAntes - soldado.vida))
+
+#el caso que da sentido al aviso: apartarse durante el alzado sale gratis
+esquivador = unJugador(200, 200)
+otro = unFrances(x=200, y=200)
+reloj['ms'] += E.RECARGA_SABLE
+otro.atacar(esquivador, rastros)
+comprobar("el frances empieza a alzar con el jugador encima", otro.alzandoSable)
+esquivador.x += E.ALCANCE_SABLE + J.ANCHO_CUERPO + 20
+esquivador.rect.topleft = (esquivador.x, esquivador.y)
+reloj['ms'] += E.DURACION_ALZADO
+otro.atacar(esquivador, rastros)
+comprobar("pero si se aparta durante el aviso, el tajo cae al aire y no le cuesta nada",
+          esquivador.vida == esquivador.vidaMaxima, "vida %d" % esquivador.vida)
+comprobar("y el frances gasta el golpe igual: el sable se suelta",
+          not otro.alzandoSable and otro.mostrandoTajo(reloj['ms']))
 
 # ---- 9. la pausa no regala tajos ----
 juego = entorno.cargarJuego()
 juego['reiniciarPartida']()
 victima = unFrances()
-victima.atacar(victima.rect.copy(), rastros)
+victima.atacar(unJugador(victima.x, victima.y), rastros)
 juego['enemies'].append(victima)
 inicioAntes = victima.instanteInicioAlzado
 tajoAntes = victima.instanteUltimoTajo
@@ -151,7 +183,7 @@ comprobar("y el del ultimo tajo",
 
 # ---- 10. el rastro de la hoja ----
 frances = unFrances(x=200, y=200)
-encima = frances.rect.copy()
+encima = unJugador(frances.x, frances.y)
 recien = []
 frances.atacar(encima, recien)
 comprobar("mientras alza el sable no hay rastro todavia", recien == [], "%d rastros" % len(recien))
@@ -172,9 +204,9 @@ frances = unFrances(x=200, y=200)
 frances.izq, frances.dch = False, True
 frances.actualizarRect()
 alOtroLado = []
-frances.atacar(frances.rect.copy(), alOtroLado)
+frances.atacar(unJugador(frances.x, frances.y), alOtroLado)
 reloj['ms'] += E.DURACION_ALZADO
-frances.atacar(frances.rect.copy(), alOtroLado)
+frances.atacar(unJugador(frances.x, frances.y), alOtroLado)
 comprobar("mirando a la derecha, el rastro sale por el otro lado",
           alOtroLado[0].x > frances.rect.centerx and not alOtroLado[0].mirandoIzq,
           "x del rastro %.0f, centro del cuerpo %d" % (alOtroLado[0].x, frances.rect.centerx))
@@ -220,11 +252,69 @@ for clase in (E.enemigoDistancia, E.voltigeur, E.granadero):
     frances = unFrances(clase=clase)
     suyos = []
     for _ in range(30):
-        frances.atacar(frances.rect.copy(), suyos)
+        frances.atacar(unJugador(frances.x, frances.y), suyos)
         reloj['ms'] += 33
     if suyos:
         sinRastro.append(clase.__name__)
 comprobar("el tirador, el voltigeur y el granadero no dejan rastro de hoja",
           not sinRastro, "dejan rastro: %s" % sinRastro)
+
+# ---- 12. el tajo tambien suena ----
+import sonidos
+
+
+class SonidoContado(object):
+    def __init__(self):
+        self.veces = 0
+
+    def play(self):
+        self.veces += 1
+
+
+comprobar("el silbido del sable se ha podido sintetizar",
+          not isinstance(sonidos.sonido_sable, sonidos.SonidoNulo),
+          type(sonidos.sonido_sable).__name__)
+comprobar("es corto y bajo, porque con cuatro franceses encima suena ocho veces por segundo",
+          sonidos.DURACION_SABLE <= 0.15 and sonidos.VOLUMEN_SABLE < sonidos.VOLUMEN_IMPACTO,
+          "%.3f s a volumen %.2f, contra el impacto a %.2f"
+          % (sonidos.DURACION_SABLE, sonidos.VOLUMEN_SABLE, sonidos.VOLUMEN_IMPACTO))
+
+#la campana es lo que lo hace un silbido y no un siseo: sin ella no se lee como algo que pasa
+def fuerzaMedia(avance):
+    return sum(abs(sonidos._sable(avance * sonidos.DURACION_SABLE, avance))
+               for _ in range(300)) / 300.0
+
+
+comprobar("suena en campana: nada, todo, nada",
+          fuerzaMedia(0.5) > 3 * fuerzaMedia(0.1) and fuerzaMedia(0.5) > 3 * fuerzaMedia(0.9),
+          "principio %.3f, medio %.3f, final %.3f"
+          % (fuerzaMedia(0.1), fuerzaMedia(0.5), fuerzaMedia(0.9)))
+
+contado = SonidoContado()
+verdadero = sonidos.sonido_sable
+E.sonidos.sonido_sable = contado
+try:
+    frances = unFrances()
+    encima = unJugador(frances.x, frances.y)
+    frances.atacar(encima, rastros)
+    comprobar("alzando el sable todavia no suena", contado.veces == 0, "%d veces" % contado.veces)
+    reloj['ms'] += E.DURACION_ALZADO
+    frances.atacar(encima, rastros)
+    comprobar("suena al caer el tajo, una sola vez", contado.veces == 1, "%d veces" % contado.veces)
+    for _ in range(20):
+        reloj['ms'] += 10
+        frances.atacar(encima, rastros)
+    comprobar("y no vuelve a sonar hasta el siguiente tajo", contado.veces == 1,
+              "%d veces" % contado.veces)
+    #los del mosquete no tienen sable, asi que no pueden sonar a sable
+    for clase in (E.enemigoDistancia, E.voltigeur, E.granadero):
+        otro = unFrances(clase=clase)
+        for _ in range(40):
+            otro.atacar(unJugador(otro.x, otro.y), rastros)
+            reloj['ms'] += 33
+    comprobar("y el tirador, el voltigeur y el granadero no suenan a sable",
+              contado.veces == 1, "%d veces" % contado.veces)
+finally:
+    E.sonidos.sonido_sable = verdadero
 
 sys.exit(resumen())

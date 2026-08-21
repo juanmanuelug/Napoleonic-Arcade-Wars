@@ -32,6 +32,23 @@ COLOR_ESTALLIDO = (250, 226, 150)
 COLOR_HUMO = (120, 116, 110)
 
 
+def parpadeoVisible(transcurrido, avance):
+    """Si en este instante la marca esta encendida. Parpadea mas rapido cuanto menos queda.
+
+    Esta suelto y no dentro de Granada porque no es solo de las granadas: cualquier ataque que
+    avise antes de caer usa este mismo lenguaje, y el jugador tiene que reconocerlo de un vistazo
+    venga de donde venga.
+    """
+    ritmo = PARPADEOS_AL_PRINCIPIO + (PARPADEOS_AL_FINAL - PARPADEOS_AL_PRINCIPIO) * avance
+    return int(transcurrido * ritmo * 2) % 2 == 0
+
+
+def dibujarAviso(win, centro, radio):
+    """El circulo rojo de "aqui va a caer algo". Va en el suelo, debajo de todo."""
+    pygame.draw.circle(win, COLOR_MARCA, (int(centro[0]), int(centro[1])), int(radio), GROSOR_MARCA)
+    pygame.draw.circle(win, COLOR_MARCA, (int(centro[0]), int(centro[1])), 2)
+
+
 class Granada(object):
     """Una granada en el aire, con su punto de caida ya decidido."""
 
@@ -56,18 +73,13 @@ class Granada(object):
 
     def marcaVisible(self, ahora):
         """El parpadeo de la marca, cada vez mas rapido conforme se acerca el impacto."""
-        t = self.avance(ahora)
-        transcurrido = (ahora - self.instanteLanzamiento) / 1000.0
-        ritmo = PARPADEOS_AL_PRINCIPIO + (PARPADEOS_AL_FINAL - PARPADEOS_AL_PRINCIPIO) * t
-        return int(transcurrido * ritmo * 2) % 2 == 0
+        return parpadeoVisible((ahora - self.instanteLanzamiento) / 1000.0, self.avance(ahora))
 
     def dibujarMarca(self, win, ahora):
         """El circulo rojo en el suelo. Va debajo de todo, para no tapar a nadie."""
         if not self.marcaVisible(ahora):
             return
-        centro = (int(self.destino[0]), int(self.destino[1]))
-        pygame.draw.circle(win, COLOR_MARCA, centro, RADIO, GROSOR_MARCA)
-        pygame.draw.circle(win, COLOR_MARCA, centro, 2)
+        dibujarAviso(win, self.destino, RADIO)
 
     def dibujar(self, win, ahora):
         x, y = self.posicion(ahora)

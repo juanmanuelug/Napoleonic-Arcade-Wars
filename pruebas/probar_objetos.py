@@ -108,8 +108,9 @@ soldado.disparar(ESPACIO, balas)
 comprobar("gastada, se vuelve a depender de la recarga", len(balas) == 4)
 
 # ---- 6. el aguardiente: inmune al contacto mientras dura ----
+# el contacto lo cobran los del mosquete; al del sable se le prueba aparte, mas abajo
 soldado = J.jugador(200, 200)
-frances = E.enemigo(200, 200, 0, 0)
+frances = E.enemigoDistancia(200, 200, 0, 0)
 frances.actualizarRect()
 vida_antes = soldado.vida
 objetos.aplicar(objetos.CLAVE_AGUARDIENTE, soldado, reloj['ms'])
@@ -123,6 +124,18 @@ reloj['ms'] += objetos.DURACION_AGUARDIENTE
 comprobar("pasado su tiempo se acaba la inmunidad", not soldado.tieneInmunidad(reloj['ms']))
 soldado.sufrirContacto([frances])
 comprobar("y el contacto vuelve a doler", soldado.vida < vida_antes, f"vida {soldado.vida}")
+
+#y tambien tapa el tajo del sable, que es el otro danio de cuerpo a cuerpo
+soldado = J.jugador(200, 200)
+conSable = E.enemigo(200, 200, 0, 0)
+conSable.actualizarRect()
+objetos.aplicar(objetos.CLAVE_AGUARDIENTE, soldado, reloj['ms'])
+rastros = []
+conSable.atacar(soldado, rastros)
+reloj['ms'] += E.DURACION_ALZADO
+conSable.atacar(soldado, rastros)
+comprobar("con aguardiente, el tajo del sable tampoco quita vida",
+          soldado.vida == soldado.vidaMaxima, f"vida {soldado.vida}")
 
 # ---- 7. el estandarte: danio doble mientras dura ----
 soldado = J.jugador(100, 250)

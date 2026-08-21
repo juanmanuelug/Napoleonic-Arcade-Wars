@@ -10,8 +10,11 @@ TIRADOR = 'tirador'
 GRANADERO = 'granadero'
 VOLTIGEUR = 'voltigeur'
 OFICIAL = 'oficial'
-# El orden en que se miran al sacar del cupo: primero lo raro, que es lo que da variedad
-TIPOS = (GRANADERO, OFICIAL, VOLTIGEUR, TIRADOR, CUERPO_A_CUERPO)
+JEFE = 'jefe'
+# El orden en que se miran al sacar del cupo: primero lo raro, que es lo que da variedad. El
+# jefe va delante de todo, pero ademas se salta la regla de "uno duro cada tres" (ver
+# sacarSiguiente): cuando hay jefe, la oleada es suya y entra el primero
+TIPOS = (JEFE, GRANADERO, OFICIAL, VOLTIGEUR, TIRADOR, CUERPO_A_CUERPO)
 
 PRIMERA_OLEADA = 1
 # Lo que se respira entre una oleada y la siguiente
@@ -38,6 +41,37 @@ OFICIALES_CADA = 7
 # enemigo.aplicarMando), asi que un cuarto oficial no hace nada que no haga el tercero, y sin
 # tope se comia a los tiradores en las oleadas altas (medido: la 40 se quedaba con cero)
 TOPE_OFICIALES = 3
+# ######################################### Los jefes #################################################
+# Cada cierto numero de oleadas entra un jefe, y van EN RUEDA: uno de cada tipo de frances, y al
+# acabar la rueda vuelve a empezar. Asi la partida deja de tener techo y pasa a tener pulso.
+# De momento la rueda tiene dos; anadir los otros dos es anadirlos a esta tupla y ensenarle a
+# main.entrarEnBatalla a construirlos.
+PRIMERA_OLEADA_CON_JEFE = 8
+OLEADAS_ENTRE_JEFES = 5
+JEFE_GRANADERO = 'jefeGranadero'
+JEFE_SABLE = 'jefeSable'
+JEFE_FUSILERO = 'jefeFusilero'
+RUEDA_DE_JEFES = (JEFE_GRANADERO, JEFE_SABLE, JEFE_FUSILERO)
+# Y no viene solo: con el entra su escolta. Sin ella el combate es un duelo, y en un duelo se puede
+# dedicar toda la atencion a las marcas del suelo; con escolta hay que repartirla, que es lo que
+# hace que un jefe sea un jefe. No cuenta para el cupo ni para el tope, como el propio jefe.
+#
+# Y la escolta entra POR FASES, no toda de golpe: cada vez que al jefe le baja la vida de un
+# escalon llama a la siguiente. Toda de golpe tenia dos problemas: el primer minuto era una
+# avalancha y el resto del combate un duelo tranquilo, y limpiarla te compraba calma para siempre.
+# Los grupos van creciendo, asi que el final del combate es el peor momento.
+#
+# Y la escolta es TODA de cuerpo a cuerpo, sin un solo tirador ni granadero. Con escolta de tiro,
+# el plomo de la escolta y el del jefe se mezclaban en la misma pantalla y no habia forma de saber
+# cual estabas esquivando; con granaderos, sus marcas rojas competian con las del jefe. Repartido:
+# el JEFE es el que niega el espacio, y la escolta es la que no te deja quedarte quieto mirandolo.
+# Cada uno hace una cosa y las dos se leen a la vez.
+ESCOLTA_POR_FASES = (
+    (1.00, (CUERPO_A_CUERPO,)),
+    (0.75, (CUERPO_A_CUERPO, CUERPO_A_CUERPO)),
+    (0.50, (CUERPO_A_CUERPO, CUERPO_A_CUERPO)),
+    (0.25, (CUERPO_A_CUERPO, CUERPO_A_CUERPO, CUERPO_A_CUERPO, CUERPO_A_CUERPO)),
+)
 # Por debajo de esto una oleada deja de parecer una oleada
 MINIMO_CUERPO_A_CUERPO = 4
 # Un cupo sin techo acabaria dando rondas eternas, no mas dificiles
@@ -46,6 +80,20 @@ TOPE_POR_OLEADA = 24
 INTERVALO_INICIAL = 3600
 RECORTE_INTERVALO = 150
 INTERVALO_MINIMO = 1100
+
+
+def tocaJefe(numero):
+    """Si esta oleada trae jefe."""
+    return (numero >= PRIMERA_OLEADA_CON_JEFE
+            and (numero - PRIMERA_OLEADA_CON_JEFE) % OLEADAS_ENTRE_JEFES == 0)
+
+
+def jefeDeLaOleada(numero):
+    """Cual de los jefes toca, dando la vuelta a la rueda. None si esta oleada no trae jefe."""
+    if not tocaJefe(numero):
+        return None
+    vuelta = (numero - PRIMERA_OLEADA_CON_JEFE) // OLEADAS_ENTRE_JEFES
+    return RUEDA_DE_JEFES[vuelta % len(RUEDA_DE_JEFES)]
 
 
 def composicion(numero):
@@ -86,8 +134,10 @@ def composicion(numero):
         tiradores -= voltigeurs
     else:
         voltigeurs = 0
+    #el jefe no se recorta ni cuenta para el tope: es UNO, y es el motivo de la oleada
     return {CUERPO_A_CUERPO: cuerpoACuerpo, TIRADOR: tiradores, VOLTIGEUR: voltigeurs,
-            OFICIAL: oficiales, GRANADERO: granaderos}
+            OFICIAL: oficiales, GRANADERO: granaderos,
+            JEFE: 1 if tocaJefe(numero) else 0}
 
 
 def intervaloDeEntrada(numero):
@@ -117,6 +167,11 @@ class Oleada(object):
     def sacarSiguiente(self, ahora):
         """Devuelve el tipo del siguiente frances y lo descuenta del cupo."""
         self.instanteUltimaEntrada = ahora
+        #el jefe entra el primero y sin esperar turno: si sale a mitad de oleada, entra cuando el
+        #campo ya esta lleno de tropa y se pierde
+        if self.pendientes[JEFE]:
+            self.pendientes[JEFE] -= 1
+            return JEFE
         #los duros se intercalan entre las bayonetas en vez de venir todos juntos al final:
         #toca uno cada tres del cupo, o cuando ya no quedan bayonetas
         for tipo in TIPOS:

@@ -62,7 +62,12 @@ def colorVida(proporcion):
 
 
 def dibujarVidaEnemigo(win, enemigo):
-    """Barrita roja flotando sobre la cabeza del enemigo."""
+    """Barrita roja flotando sobre la cabeza del enemigo.
+
+    Los jefes no la llevan: tienen la suya, ancha y arriba, y las dos a la vez sobraba.
+    """
+    if getattr(enemigo, 'ES_JEFE', False):
+        return
     proporcion = enemigo.vida / float(enemigo.vidaMaxima)
     barra = pygame.Rect(0, 0, ANCHO_BARRA_ENEMIGO, ALTO_BARRA_ENEMIGO)
     barra.centerx = enemigo.rect.centerx
@@ -266,3 +271,52 @@ def dibujarMochila(win, soldado, alto_pantalla):
     recuadro = tecla.get_rect(midright=(MARGEN + ANCHO_MOCHILA - MARGEN, arriba + ALTO_MOCHILA // 2))
     pygame.draw.rect(win, COLOR_TECLA, recuadro.inflate(8, 6), 1)
     win.blit(tecla, recuadro)
+
+# ####################################### La barra del jefe ###########################################
+# Un jefe no puede llevar la misma barrita de 20 px que la tropa: aguanta 600 y hay que ver como
+# baja. Va arriba y centrada, del ancho de media pantalla, y solo aparece cuando hay uno vivo.
+# Va POR DEBAJO del panel del jugador y no a su altura: centrada en pantalla se le montaba
+# encima, porque el panel llega hasta la mitad del ancho
+ALTO_BARRA_JEFE = 9
+SEPARACION_BAJO_EL_PANEL = 8
+FRACCION_ANCHO_JEFE = 0.55
+COLOR_MARCO_JEFE = (18, 14, 10)
+COLOR_VIDA_JEFE = (196, 40, 44)
+COLOR_FONDO_JEFE = (70, 26, 26)
+
+
+def dibujarVidaJefe(win, enemigos, ancho):
+    """La barra del primer jefe vivo que haya en el campo. Sin jefes no dibuja nada."""
+    jefes = [uno for uno in enemigos if getattr(uno, 'ES_JEFE', False) and uno.vivo]
+    if not jefes:
+        return
+    jefe = jefes[0]
+    anchoBarra = int(ancho * FRACCION_ANCHO_JEFE)
+    izquierda = (ancho - anchoBarra) // 2
+    arriba = altoPanel() + SEPARACION_BAJO_EL_PANEL
+    marco = pygame.Rect(izquierda, arriba, anchoBarra, ALTO_BARRA_JEFE)
+    pygame.draw.rect(win, COLOR_FONDO_JEFE, marco)
+    queda = max(0.0, min(1.0, jefe.vida / float(jefe.vidaMaxima)))
+    if queda > 0:
+        pygame.draw.rect(win, COLOR_VIDA_JEFE,
+                         pygame.Rect(marco.left, marco.top, int(marco.width * queda), marco.height))
+    pygame.draw.rect(win, COLOR_MARCO_JEFE, marco, 1)
+
+# ####################################### Modo de pruebas #############################################
+# Cuando el modo esta encendido hay que verlo SIEMPRE: un juego que se comporta distinto sin decirlo
+# es una trampa para quien lo prueba
+COLOR_AVISO_PRUEBAS = (230, 208, 120)
+TEXTO_PRUEBAS = 'PRUEBAS  J jefe  N oleada  I inmune  F fase'
+TEXTO_PRUEBAS_INMUNE = 'PRUEBAS  J jefe  N oleada  I INMUNE  F fase'
+
+
+def dibujarAvisoDePruebas(win, ancho, alto, inmune=False):
+    """La linea de atajos del modo de pruebas, abajo a la derecha."""
+    texto = FUENTE_HUD.render(TEXTO_PRUEBAS_INMUNE if inmune else TEXTO_PRUEBAS,
+                                 True, COLOR_AVISO_PRUEBAS)
+    fondo = pygame.Surface((texto.get_width() + 2 * MARGEN, texto.get_height() + MARGEN),
+                           pygame.SRCALPHA)
+    fondo.fill(COLOR_PANEL)
+    esquina = (ancho - fondo.get_width(), alto - fondo.get_height())
+    win.blit(fondo, esquina)
+    win.blit(texto, (esquina[0] + MARGEN, esquina[1] + MARGEN // 2))

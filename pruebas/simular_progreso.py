@@ -11,6 +11,7 @@ pygame.init()
 juego = entorno.cargarJuego()
 
 import ascensos
+import jugador as J
 
 FPS = 30
 MS_POR_FRAME = 1000 // FPS
@@ -69,53 +70,136 @@ def elegirMejora():
     return pygame.K_1
 
 
+# ####################################### El bot ######################################################
 # Con un solo umbral el bot se pasaba la partida huyendo y no disparaba nunca: en cuanto se
 # paraba, el de bayoneta volvia a entrar en su distancia de peligro. Con dos umbrales gana aire
 # hasta AIRE_SUFICIENTE y solo vuelve a huir cuando le llegan a DISTANCIA_DE_PELIGRO, que es
 # como se juega esto de verdad: correr, girarse y disparar.
+#
+# Y huia EN LINEA RECTA hacia el lado contrario del que tenia encima, que es lo que le metia en
+# las esquinas: en una esquina "el lado contrario" es la pared, asi que se quedaba clavado
+# disparando al aire mientras las bayonetas lo molian. Medido: de 10 partidas, 7 morian entre
+# 55 y 110 s y 3 sobrevivian los 10 minutos sin pasar de la oleada 1, y el danio por segundo
+# salia mayor en la oleada 2 que en la 3, al reves de la realidad.
+#
+# Ahora PUNTUA las nueve opciones (las ocho direcciones y quedarse quieto) y se queda con la
+# mejor. La puntuacion suma el aire que gana respecto al frances mas cercano y el sitio que le
+# queda hasta el borde, asi que una esquina deja de ser una trampa: salir pegado a la pared
+# puntua mejor que meterse en el vertice, y quedarse quieto puntua peor que cualquier salida.
 DISTANCIA_DE_PELIGRO = 100
 AIRE_SUFICIENTE = 200
-MARGEN_DEL_BORDE = 40
+# Cuanto sitio hasta el borde se considera ya "de sobra": a partir de aqui, mas espacio no
+# puntua mas. Sin este tope el bot se pasaba la partida buscando el centro del mapa
+HOLGURA_DE_SOBRA = 70
+# Lo que pesa el sitio hasta el borde frente al aire. Por encima de 1 el bot prefiere salir del
+# rincon aunque le cueste acercarse un poco al frances, que es justo lo que hace un humano
+PESO_DEL_BORDE = 1.4
+# Margen de alineacion con el que se da por encarado y dispara en vez de seguir colocandose
+MARGEN_DE_PUNTERIA = 4
+# El bot tambien pelea de cerca, porque si no no puede medir el cuerpo a cuerpo: estoca a lo que
+# tenga a punta de bayoneta, y dashea cuando ve un sable subiendo dentro de su alcance. Ese es el
+# bucle que se quiere medir (picar, salir, volver), no una floritura
+
+TECLAS_POR_DIRECCION = {
+    (0, 0): frozenset(),
+    (0, -1): frozenset([pygame.K_UP]),
+    (0, 1): frozenset([pygame.K_DOWN]),
+    (-1, 0): frozenset([pygame.K_LEFT]),
+    (1, 0): frozenset([pygame.K_RIGHT]),
+    (-1, -1): frozenset([pygame.K_LEFT, pygame.K_UP]),
+    (-1, 1): frozenset([pygame.K_LEFT, pygame.K_DOWN]),
+    (1, -1): frozenset([pygame.K_RIGHT, pygame.K_UP]),
+    (1, 1): frozenset([pygame.K_RIGHT, pygame.K_DOWN]),
+}
 
 
-def _alejarseDe(soldado, amenaza):
-    """Teclas para apartarse en diagonal de quien tenemos encima, sin acorralarse en un borde."""
-    teclas = set()
-    if amenaza.x > soldado.x and soldado.x > MARGEN_DEL_BORDE:
-        teclas.add(pygame.K_LEFT)
-    elif amenaza.x <= soldado.x and soldado.x < 500 - MARGEN_DEL_BORDE:
-        teclas.add(pygame.K_RIGHT)
-    if amenaza.y > soldado.y and soldado.y > MARGEN_DEL_BORDE:
-        teclas.add(pygame.K_UP)
-    elif amenaza.y <= soldado.y and soldado.y < 500 - MARGEN_DEL_BORDE:
-        teclas.add(pygame.K_DOWN)
-    return teclas
+def _aire(x, y, enemigos):
+    """Distancia al frances mas cercano desde un punto."""
+    return min(((x - enemigo.x) ** 2 + (y - enemigo.y) ** 2) ** 0.5 for enemigo in enemigos)
+
+
+def _holguraAlBorde(x, y):
+    """Lo que queda hasta el borde mas cercano, sin pasar de HOLGURA_DE_SOBRA."""
+    hasta = min(x, y, 500 - J.ANCHO_CUERPO - x, 500 - J.ALTO_CUERPO - y)
+    return min(max(0.0, hasta), HOLGURA_DE_SOBRA)
+
+
+def _dondeCaeria(soldado, direccion):
+    """Donde acabaria el soldado si pulsara esas teclas este frame."""
+    avanceX, avanceY = direccion
+    paso = J.VELOCIDAD_DIAGONAL if avanceX and avanceY else J.VELOCIDAD
+    x = min(max(0, soldado.x + avanceX * paso), 500 - J.ANCHO_CUERPO)
+    y = min(max(0, soldado.y + avanceY * paso), 500 - J.ALTO_CUERPO)
+    return x, y
+
+
+def _mejorEscapada(soldado, enemigos):
+    """Las teclas de la direccion que mas aire y mas sitio deja."""
+    mejores = None
+    teclasElegidas = frozenset()
+    for direccion, teclas in TECLAS_POR_DIRECCION.items():
+        x, y = _dondeCaeria(soldado, direccion)
+        puntos = _aire(x, y, enemigos) + PESO_DEL_BORDE * _holguraAlBorde(x, y)
+        #quedarse quieto solo gana si de verdad es la mejor opcion, no por empate
+        if mejores is None or puntos > mejores + 0.001:
+            mejores = puntos
+            teclasElegidas = teclas
+    return set(teclasElegidas)
+
+
+def _pulsar(tecla):
+    """La bayoneta y el dash van por pulsacion, asi que hay que meter el evento en la cola."""
+    control['eventos'].append(pygame.event.Event(pygame.KEYDOWN, key=tecla))
+
+
+def _sableViniendo(soldado, enemigos):
+    """El primero que tenga el sable en alto y a este ya dentro de su alcance."""
+    for enemigo in enemigos:
+        if getattr(enemigo, 'alzandoSable', False) and enemigo.alcanceDelSable().colliderect(soldado.rect):
+            return enemigo
+    return None
+
+
+def pelearDeCerca(soldado, enemigos):
+    """Estoca y dashea como lo haria una persona. Devuelve si el dash le ha quitado el turno."""
+    ahora = pygame.time.get_ticks()
+    #primero salvar la vida: si hay un sable cayendo encima, salir de ahi
+    if _sableViniendo(soldado, enemigos) and soldado.puedeDashear(ahora):
+        _pulsar(juego['TECLAS_DASH'][0])
+        return True
+    #y si no, aprovechar: a punta de bayoneta pega el acero, que va cuatro veces mas rapido
+    if soldado.puedeEstocar(ahora):
+        caja = soldado.cajaDeLaBayoneta()
+        if any(caja.colliderect(enemigo.rect) for enemigo in enemigos):
+            _pulsar(juego['TECLA_BAYONETA'])
+    return False
 
 
 def pilotarBot():
-    """Se aparta de quien tiene encima y, si no, se alinea con el blanco mas facil y dispara."""
+    """Gana aire cuando lo tiene encima y, si no, se alinea con el blanco mas facil y dispara."""
     soldado = juego['player']
     enemigos = juego['enemies']
     if not enemigos:
         control['teclas'] = set()
         return
-    masCercano = min(enemigos,
-                     key=lambda enemigo: abs(enemigo.x - soldado.x) + abs(enemigo.y - soldado.y))
-    aire = abs(masCercano.x - soldado.x) + abs(masCercano.y - soldado.y)
+    if pelearDeCerca(soldado, enemigos):
+        #en mitad de un dash no se anda: el dash manda
+        control['teclas'] = set()
+        return
+    aire = _aire(soldado.x, soldado.y, enemigos)
     if aire < DISTANCIA_DE_PELIGRO:
         control['huyendo'] = True
     elif aire >= AIRE_SUFICIENTE:
         control['huyendo'] = False
     if control.get('huyendo'):
         #se dispara igual mientras se corre: si alguien se pone delante, cae
-        control['teclas'] = _alejarseDe(soldado, masCercano) | {pygame.K_SPACE}
+        control['teclas'] = _mejorEscapada(soldado, enemigos) | {pygame.K_SPACE}
         return
     #el blanco mas facil no es el mas cercano, es el que ya esta casi a tu altura
     objetivo = min(enemigos, key=lambda enemigo: abs(enemigo.y - soldado.y))
     haciaLaIzquierda = objetivo.x < soldado.x
-    teclas = set()
-    teclas.add(pygame.K_SPACE)
-    if abs(objetivo.y - soldado.y) > 4:
+    teclas = set([pygame.K_SPACE])
+    if abs(objetivo.y - soldado.y) > MARGEN_DE_PUNTERIA:
         teclas.add(pygame.K_DOWN if objetivo.y > soldado.y else pygame.K_UP)
     elif soldado.mirando_izq != haciaLaIzquierda:
         #encararlo cuesta un paso, porque la orientacion solo cambia al andar

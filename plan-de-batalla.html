@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Hoja de ruta de 33 tareas para Napoleonic Arcade Wars, ordenadas por dependencia.">
+<meta name="description" content="Hoja de ruta de 37 tareas para Napoleonic Arcade Wars, ordenadas por dependencia.">
 <title>Plan de Batalla</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -310,7 +310,7 @@
   <header>
     <p class="eyebrow">Napoleonic Arcade Wars · hoja de ruta</p>
     <h1>Plan de<br>batalla</h1>
-    <p class="lede">Treinta y tres tareas para el juego, ordenadas por dependencia: cada nivel se apoya en el anterior. <strong>Hechos los niveles 0, 1, 2 y 3</strong> — los cuatro franceses nuevos (voltigeur, granadero lanzagranadas y oficial) salieron por cirugía de los sprites que ya había, sin dibujar ninguno de cero. Quedan cinco tareas: el jefe de la Guardia Imperial y el nivel 5, que es caro o necesita arte nuevo.</p>
+    <p class="lede">Treinta y siete tareas para el juego, ordenadas por dependencia: cada nivel se apoya en el anterior. <strong>Hechas 32</strong>, incluidos los niveles 1, 2 y 3 completos — los tres franceses nuevos (voltigeur, granadero lanzagranadas y oficial) salieron por cirugía de los sprites que ya había, sin dibujar ninguno de cero. Quedan cinco: una que cierra el juego (el jefe de la Guardia) y el nivel 5, que es caro o necesita arte nuevo.</p>
 
     <div class="legend">
       <div><b>XS</b> menos de media hora</div>
@@ -333,6 +333,7 @@
       <li class="hecho"><code>T2.1–2.3</code> objetos</li>
       <li class="hecho"><code>T3.1–3.4</code> franceses nuevos</li>
       <li class="hecho"><code>T4.1</code> récord</li>
+      <li><code>T4.5</code> el jefe, y con él un final</li>
     </ol>
   </section>
 
@@ -342,7 +343,7 @@
       <div class="nivel-num">0<span>hecho</span></div>
       <div>
         <h2>Antes de añadir nada</h2>
-        <p>Trabajo que no se ve pero que protege o desbloquea todo lo de abajo. Cerrado: las pruebas viven en <code>pruebas/</code> con lanzador propio, ESC ya no te roba la partida y los franceses tienen techo.</p>
+        <p>Trabajo que no se ve pero que protege o desbloquea todo lo de abajo. Las pruebas viven en <code>pruebas/</code> con lanzador propio (14 baterías, 506 comprobaciones), ESC ya no te roba la partida y los franceses tienen techo. Cerrado, incluido el bot con el que se mide el equilibrio, que se dejaba acorralar en las esquinas.</p>
       </div>
     </div>
 
@@ -395,16 +396,41 @@
           <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip alto">impacto alto</span><span class="chip hecho">hecho</span></div>
         </div>
       </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T0.7</div>
+        <div>
+          <h3>Modo de pruebas</h3>
+          <p>Hecho. Llegar a la oleada 8 para ver un jefe eran ocho oleadas de peaje cada vez que había algo que mirar. Ahora mismo está <strong>encendido</strong>, y mientras lo esté lo dice una línea en pantalla: un juego que se comporta distinto sin avisar es una trampa para quien lo prueba. Se apaga con <code>PRUEBAS=0</code> al arrancar o poniendo <code>MODO_PRUEBAS = False</code>, y conviene apagarlo antes de enseñarle el juego a alguien. Encenderlo o apagarlo <strong>nunca se hace jugando</strong>.</p>
+          <p>Con <code>OLEADA</code> se empieza donde se quiera, y el soldado arranca con <strong>todas las mejoras y el rango máximo</strong>, que es lo que tendría al llegar ahí jugando: con el mosquete de recluta, un jefe de 2.400 de vida son dos minutos y medio de disparar, y eso no prueba nada. Cuatro teclas: <b>J</b> mete un jefe ahora, <b>N</b> pasa de oleada, <b>I</b> hace inmune y <b>F</b> baja al jefe a su fase siguiente.</p>
+          <p>La mitad de su batería de pruebas no comprueba que funcione, comprueba que <strong>con el modo apagado ninguna de las cuatro teclas haga nada</strong>. Y de paso cazó un fallo de verdad: el atajo del jefe reventaba en cualquier oleada que no fuera de jefe, porque la rueda no tiene turno asignado para esas.</p>
+          <div class="chips"><span class="chip esfuerzo">S</span><span class="chip">instrumental</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T0.6</div>
+        <div>
+          <h3>Arreglar el bot de medición</h3>
+          <p>Hecho. El bot huía <strong>en línea recta hacia el lado contrario del que tenía encima</strong>, y eso le metía en las esquinas: en una esquina el lado contrario es la pared, así que se quedaba clavado disparando al aire mientras las bayonetas lo molían. Lo que medía era cuánto se dejaba acorralar, no la dificultad.</p>
+          <div class="medido"><b>Antes:</b> de 10 partidas, 7 morían entre 55 y 110 s y 3 sobrevivían los 10 minutos sin pasar de la oleada 1. Y el daño por segundo salía mayor en la oleada 2 (13,4) que en la 3 (11,1), al revés de la realidad.</div>
+          <p>Ahora <strong>puntúa las nueve opciones</strong> (las ocho direcciones y quedarse quieto) y se queda con la mejor, sumando el aire que gana respecto al francés más cercano y el sitio que le queda hasta el borde. Una esquina deja de ser una trampa porque salir pegado a la pared puntúa mejor que meterse en el vértice.</p>
+          <div class="medido"><b>Después:</b> ni un atasco en 12 partidas, todas mueren en la oleada 2-3 entre 59 y 155 s, y el daño por segundo <b>ya sube con la oleada</b> (0,2 → 1,5 → 2,9 en las tres primeras, 14 muestras cada una). Inmortal llega a la oleada 7 de mediana, rango 3-9.</div>
+          <p><b>Y un resultado negativo que ahorra trabajo:</b> probados tres pares de umbrales de huida (100/200, 70/140, 50/110), los dos primeros dan exactamente lo mismo y el tercero es peor. El techo del bot no está ahí, así que no hay nada que rascar tocando esos números.</p>
+          <p><b>Lo que sigue sin poder medir:</b> el bot juega mucho peor que una persona, así que sirve para comparar un cambio con el anterior, no para decidir si algo es divertido. Y de la oleada 5 en adelante quedan pocas muestras, así que ahí los números todavía bailan.</p>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip">instrumental</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
     </div>
   </section>
 
   <!-- ================= NIVEL 1 ================= -->
   <section class="nivel">
     <div class="nivel-cab">
-      <div class="nivel-num">1<span>hecho</span></div>
+      <div class="nivel-num">1<span>casi</span></div>
       <div>
         <h2>Lo que más se nota por hora invertida</h2>
-        <p>Nada de contenido nuevo: el mismo juego, pero se siente el doble. Cerrado, incluido el sonido — que estaba marcado como bloqueado y salió adelante sintetizando los efectos en vez de añadir ficheros.</p>
+        <p>Nada de contenido nuevo: el mismo juego, pero se siente el doble. Incluido el sonido, que estaba marcado como bloqueado y salió adelante sintetizando los efectos en vez de añadir ficheros. Queda una sola cosa, y no la puedo hacer yo: la música de batalla necesita una pista de verdad.</p>
       </div>
     </div>
 
@@ -471,6 +497,31 @@
           <h3>Cada uno muere con su cadáver</h3>
           <p>Hecho. El granadero moría con el cadáver del soldado de línea, con chacó, aunque en pie lleve bonete de piel de oso. Tiene el suyo, sacado por cirugía del mismo cuerpo tirado con el bonete y el penacho, y sin cambiar el tamaño del lienzo para no descolocar a los que mueren mirando a la derecha.</p>
           <div class="chips"><span class="chip esfuerzo">S</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T1.9</div>
+        <div>
+          <h3>Pelear de cerca: bayoneta, dash y sable con aviso</h3>
+          <p>Hecho, y son <strong>tres cosas que solo funcionan juntas</strong>. Antes el cuerpo a cuerpo no se jugaba, se sufría: el contacto te quitaba 8 de vida cada medio segundo sin que pudieras hacer nada, y tú no tenías forma de responder de cerca.</p>
+          <p><b>El francés ahora avisa.</b> Alza el sable, lo mantiene <strong>600 ms</strong> —18 frames, ajustado a la baja tras jugarlo porque un segundo entero se hacía largo y el francés parecía parado— y entonces taja. El daño lo hace el tajo (18) y no el contacto: tocarle es gratis, y lo que cuesta es quedarse dentro de su alcance cuando el sable cae.</p>
+          <div class="medido"><b>Medido</b> (jugador clavado contra un francés, 20 s, sin bots): antes <b>16,0</b> de vida por segundo, inevitables. Ahora <b>11,7</b> si aguantas y <b>0,0</b> si te apartas al ver subir el sable — suelta sus 13 tajos y no acierta ninguno.</div>
+          <p><b>Tú tienes bayoneta</b> (tecla E): 40 de daño a 16 px por delante del cuerpo, uno cada 570 ms. Y la bayoneta <strong>se ve calada en los 18 sprites</strong>, no solo al golpear: hacia arriba en los siete de andar (el mosquete va en vertical), hacia delante en el de apuntar, y pintada sobre la humareda en el del fogonazo, donde la boca del cañón queda dentro del humo. Los sprites originales no se tocan; cada uno saca su variante, como el voltigeur y el oficial. Como el acero ya se ve siempre, lo que dice «golpe» es que el cuerpo se dibuja 5 px adelantado y que el acero suelta un <strong>destello recto</strong> que sale disparado y se recoge, anclado a la altura del cañón: centrado en la caja del golpe salía 4 px por encima de la hoja y se veía despegado del mosquete.</p>
+          <p><b>Y un dash hacia atrás</b> (SHIFT): 40 px al lado contrario del que miras, en 4 frames, con un <strong>zumbido de viento</strong> sintetizado — ruido pasado por un filtro que se lleva los agudos, que es lo que separa un soplo de un siseo (medido: cruza el cero 415 veces contra las 2006 del ruido blanco). Deja una <strong>estela</strong> de siluetas del propio cuerpo que se van apagando; la primera versión reusaba el halo del oficial, de cuatro pasadas y alfa 150, y dejaba un borrón pálido enorme en vez de una estela. Salta hacia atrás y no hacia donde corres a propósito: girarse para huir es perder el disparo, y así te sales del sable sin dejar de encarar a quien te ataca.</p>
+          <div class="medido"><b>La geometría cuadra:</b> tu bayoneta llega hasta 15 px de hueco y su sable hasta 5, o sea que hay una <b>franja de 10 px donde tú le llegas y él no</b>. Ahí está el juego: picar, salir, volver. El dash (40 px) te saca de las dos franjas de un salto, y no más: con los 60 px de la primera versión el salto te sacaba de la pelea entera.</div>
+          <p><b>Ajustado a mano tras la primera partida:</b> el bayonetazo bajó de 89 a <b>70,2 de daño por segundo</b> subiendo la recarga de 450 a 570 ms. Se tocó la recarga y no el daño para que sigan bastando <b>dos</b> golpes para tumbar a un francés de 75 de vida: bajando el daño harían falta tres, y eso cambia la sensación más que el número. Siguen siendo cuatro veces el mosquete base (17/s), a cambio de meterte en su alcance.</p>
+          <div class="chips"><span class="chip esfuerzo">M</span><span class="chip alto">impacto alto</span><span class="chip aviso">pendiente de tu partida</span><span class="chip hecho">hecho</span></div>
+        </div>
+      </article>
+
+      <article class="tarea hecha">
+        <div class="codigo">T1.8</div>
+        <div>
+          <h3>El silbido del sable</h3>
+          <p>Hecho. Sintetizado como el resto de <code>sonidos.py</code>, sin ficheros ni dependencias nuevas: ruido con un <strong>barrido de agudo a grave</strong> (2600 a 900 Hz) y, sobre todo, una <strong>envolvente en campana</strong> — nada, todo, nada. La campana es lo que lo convierte en un silbido y no en un siseo: hace que suene a algo que <em>pasa al lado</em>, no a un chorro de aire.</p>
+          <p>Corto (110 ms) y bajo (0,16 contra 0,35 del impacto) a propósito: con tres o cuatro franceses encima el tajo suena hasta ocho veces por segundo, y a más volumen taparía los mosquetes, que es lo que de verdad hay que oír.</p>
+          <div class="chips"><span class="chip esfuerzo">XS</span><span class="chip hecho">hecho</span></div>
         </div>
       </article>
     </div>
@@ -548,10 +599,10 @@
   <!-- ================= NIVEL 3 ================= -->
   <section class="nivel">
     <div class="nivel-cab">
-      <div class="nivel-num">3<span>enemigos</span></div>
+      <div class="nivel-num">3<span>hecho</span></div>
       <div>
         <h2>Más franceses, sin dibujar nada</h2>
-        <p>Hay dos tipos de enemigo y el juego se lee entero en veinte segundos. La clave para ampliar el bestiario sin arte nuevo es el tintado: la misma silueta con otro color y otros números se lee como otro soldado.</p>
+        <p>Había dos tipos de enemigo y el juego se leía entero en veinte segundos. La apuesta era el <strong>tintado</strong>, y resultó equivocada: estos sprites son un 60% casi negro y el tinte los deja iguales. Lo que sí funcionó fue la <strong>cirugía</strong>: pintar una capa de detalles encima del sprite bueno, anclada a un punto de referencia que se busca en cada fotograma (el bonete, el pompón del chacó). Con eso salieron los tres franceses nuevos y ni uno se dibujó de cero.</p>
       </div>
     </div>
 
@@ -601,6 +652,8 @@
         <div>
           <h3>Granadero lanzador</h3>
           <p>Hecho. La granada no vuela con física: se lanza a un punto y tarda 1,5 s en caer, y mientras vuela <strong>el sitio donde va a caer está marcado con un círculo rojo que parpadea cada vez más rápido</strong>. Eso es lo que hace justa un arma de área: te avisa, y salirte depende de ti. Y sí, rompe la táctica única del juego: una granada no se esquiva cambiando de fila. El estallido <strong>no distingue bando</strong>: si te colocas bien, el granadero revienta a los suyos.</p>
+          <p><b>Y llevaba un fallo grave que solo se vio jugando:</b> <code>main.py</code> le pasaba dos puntos distintos del jugador — la esquina del cuerpo para buscar su anillo y el centro para medir el alcance, 20 px de diferencia. El granadero se paraba en cuanto la esquina entraba en el anillo, a 190 px, y desde ahí el centro le quedaba a 199: fuera de alcance. Los que llegaban por la izquierda o por arriba <strong>se plantaban y no lanzaban nunca</strong>. Arreglado midiendo las dos cosas con la misma vara.</p>
+          <div class="medido"><b>Medido</b> (300 granaderos, apariciones reales, jugador quieto): antes llegaban a lanzar el <b>53%</b>, ahora el <b>100%</b>. De 6,4 granadas por granadero y minuto a 12,0. O sea que casi la mitad de los granaderos eran decorativos y la amenaza de granada se ha multiplicado por 1,9.</div>
           <div class="chips"><span class="chip esfuerzo">M–L</span><span class="chip desbloquea">depende de T0.4</span><span class="chip hecho">hecho</span></div>
         </div>
       </article>
@@ -628,7 +681,7 @@
   <!-- ================= NIVEL 4 ================= -->
   <section class="nivel">
     <div class="nivel-cab">
-      <div class="nivel-num">4<span>forma</span></div>
+      <div class="nivel-num">4<span>casi</span></div>
       <div>
         <h2>Que la partida tenga forma</h2>
         <p>Ahora la batalla es un grifo abierto: empieza, sube y acaba cuando mueres. Esto le da principio, medio y final, y una razón para volver a jugar.</p>
@@ -687,9 +740,63 @@
       <article class="tarea">
         <div class="codigo">T4.5</div>
         <div>
-          <h3>La Guardia Imperial</h3>
-          <p>Un jefe al llegar a Coronel: oficial escalado a 1,6, 600 de vida y escolta de granaderos. Ahora mismo el rango máximo es el final de la progresión pero no el final de la partida, que sigue hasta que te descuidas. Esto le pone un techo con recompensa.</p>
-          <div class="chips"><span class="chip esfuerzo">L</span><span class="chip alto">impacto alto</span><span class="chip">desbloqueada: el oficial de T3.4 ya existe</span></div>
+          <h3>Los cuatro jefes</h3>
+          <p>Ya no es un jefe, son <strong>cuatro jefes recurrentes</strong>, uno de cada tipo de francés, cada uno al doble de tamaño y con más detalle. Van en rueda, así que la partida deja de tener un techo y pasa a tener un pulso: cada X oleadas aparece el siguiente.</p>
+          <ol>
+            <li><b>Granadero.</b> No lanza una granada: lanza una <strong>lluvia</strong>. Varias marcas rojas en el suelo a la vez y hay que leer el hueco entre ellas.</li>
+            <li><b>Fusilero.</b> Dispara un <strong>paraguas de balas</strong> en abanico. Se esquiva colocándose, no corriendo.</li>
+            <li><b>Cuerpo a cuerpo.</b> Tajos <strong>en área</strong>, y cada cierto tiempo una <strong>carga</strong> hacia ti que hay que ver venir y quitarse.</li>
+            <li><b>Voltigeur.</b> Rápido y con una <strong>cadencia de disparo muy alta</strong>. No pega fuerte: no te deja parar.</li>
+          </ol>
+          <p><b>El escalado, en 2× y no en 1,6.</b> Escalar arte de píxel por un número no entero reparte mal los píxeles: unos salen de 1×1 y otros de 2×2, y el sprite se ve irregular. Con 2× cada píxel es un cuadrado limpio. Los detalles extra van por cirugía encima, como el voltigeur y el oficial.</p>
+          <p><b>Hecho el primero: el granadero.</b> Los 14 sprites al doble (40×72) con galón propio —placa de latón con reborde en el bonete, charretera dorada en el hombro y botones—, <strong>2.400 de vida</strong>, objeto garantizado y barra ancha en el HUD, debajo del panel del jugador.</p>
+          <p><b>Y tres ataques, uno por trozo de vida</b>, para que la pelea tenga capítulos: lo que aprendes a esquivar deja de servir y hay que leer otra cosa.</p>
+          <ol>
+            <li><b>Por encima de 3/4 — la lluvia.</b> Nueve granadas desperdigadas hasta 150 px alrededor de donde estés. Con nueve ya no puedes salirte del área corriendo (recorres 135 px mientras vuelan): hay que <em>leer</em> el hueco.</li>
+            <li><b>De 3/4 a 1/4 — la onda.</b> Cinco anillos concéntricos alrededor del <em>jugador</em>. El primero cae <strong>encima de él</strong> —radio 30, menor que los 40 del estallido, para que tape el centro— y cada uno siguiente <strong>roza al de dentro</strong>: el paso entre anillos es justo el diámetro del estallido (80 px), así que no queda banda libre entre ellos. Como todos llevan las mismas nueve granadas, el hueco entre impactos crece con el radio: los <strong>dos de dentro quedan sellados</strong> (−45 y 11 px de hueco, con un jugador de 20 de ancho) y los de fuera abren paso (67, 527). Quedarse quieto no es una opción; hay que salir por fuera.</li>
+            <li><b>Por debajo de 1/4 — el barrido.</b> Cubre el mapa <strong>entero en un solo ataque</strong>: ocho columnas de granadas que entran por los dos bordes a la vez y se van cerrando hacia el centro, par a par (30/470 → 100/400 → 170/330 → 240/260). Las columnas van a 70 px y el estallido mide 80 de diámetro, así que <strong>a lo ancho no queda hueco</strong> y esquivar a los lados no sirve. Lo que queda son pasillos a lo <em>alto</em> de 50 px, con un jugador de 36: catorce de margen. Y cada par entra desplazado medio pasillo respecto al anterior, así que los pasillos se mueven y aparcar en uno no vale — hay que saltar 65 px entre par y par, y da tiempo justo (se pueden recorrer 94).</li>
+          </ol>
+          <p><b>Corregido tras jugarlo:</b> los anillos iban alrededor del <em>jefe</em>, así que bastaba con acorralarlo en una esquina para que la fase entera cayera lejos. Ahora van alrededor del jugador, y acorralar al jefe ya no desactiva su ataque. Dentro de cada anillo las granadas van muy seguidas (70 ms) y entre anillo y anillo hay pausa (600 ms), para que se lean como círculos y no como un goteo; las que caerían fuera del campo se saltan en vez de recortarse al borde, que amontonaba granadas en el canto.</p>
+          <p>Las granadas de la lluvia caen <em>de una en una</em> cada 220 ms, no todas de golpe: cada una trae su marca roja, y en secuencia se pueden leer y correr; siete marcas apareciendo en el mismo frame no se leen, se sufren.</p>
+          <div class="medido"><b>Medido, que es lo que hace justos los tres patrones:</b> en 200 lluvias generadas al azar, <b>siempre</b> queda un sitio a salvo dentro de lo que da tiempo a recorrer — y eso no se deduce de un área, se busca punto por punto. En la onda, los anillos van a 80 px exactos uno de otro —el diámetro del estallido— y el hueco entre impactos pasa de −28 px en el de dentro a 834 en el de fuera. Y el barrido tapa las ocho columnas del mapa de borde a borde, dejando solo <b>50 px de paso</b> a lo alto, con un jugador que mide 36. Por ráfaga: 9 granadas la lluvia, 30 la onda y 28 el barrido, con hasta 14 en el aire a la vez.</div>
+          <div class="medido"><b>Duración de la pelea:</b> 2.400 de vida son 24 s de fuego seguido con el mosquete al máximo (100 de daño/s), o unos <b>48 s</b> esquivando la mitad del tiempo. Sale en la oleada 8, y a Coronel —con todo al máximo— se llega limpiando la 7.</div>
+          <p><b>Dos fallos de diseño que salieron de jugarlo, y que hacían el combate un paseo.</b> El primero: el anillo de dentro de la onda estaba a 50 px y el estallido tiene 40 de radio, así que tapaba de 10 a 90 px del centro y <strong>dejaba un agujero de 10 px justo donde está el jugador</strong> cuando la onda empieza. Quedarse quieto en el centro era gratis. El segundo: con la lluvia a 150 px de dispersión, la probabilidad de que una granada suelta alcanzara a alguien quieto era del 6% — <strong>media granada por ráfaga</strong>, o sea que plantarse a disparar era la mejor jugada posible.</p>
+          <p><b>Arreglados, y encima el jefe ya no descansa.</b> La recarga entre ráfagas bajó de 5,2 a 2,2 s: las marcas de la siguiente aparecen mientras revientan las de la anterior, así que hay que pensar dos jugadas por delante. <b>Y no pelea solo:</b> le llega escolta, porque en un duelo se puede dedicar toda la atención al suelo y con escolta hay que repartirla.</p>
+          <div class="medido"><b>Medido</b> (blanco quieto, 60 s, sin bots), antes → después: la lluvia pasa de <b>1</b> a <b>6</b> de daño por segundo, la onda de <b>6</b> a <b>15</b> y el barrido de <b>4</b> a <b>7</b>. Y hay marcas en pantalla el <b>80%</b> del tiempo en vez del 55%. Con 100 de vida y quieto, la onda mata en 6,7 s.</div>
+          <p><b>Hecho el segundo: el de cuerpo a cuerpo.</b> Sale del <em>oficial</em> escalado a 2× y con más galón, y eso ahorró la mitad del trabajo: el oficial ya era esa figura con penacho y banda dorada. Hereda del oficial también en el código, así que trae puesta su <strong>aura de mando</strong> — acelera a su propia escolta.</p>
+          <p>Sus dos ataques son de cerca, así que su problema es el contrario que el del granadero: el granadero te niega el suelo y este te persigue.</p>
+          <ol>
+            <li><b>El tajo en área.</b> No necesita tocarte: barre un círculo de 82 px a su alrededor, más que el cuerpo entero de un soldado. Avisa 850 ms (el de la tropa avisa 600, y este barre mucho más) y quita 30. Se esquiva <em>saliéndose del círculo</em>, no separándose un paso. <b>Y se ve lo que es:</b> al caer, el jefe <strong>gira sobre sí mismo con la espada estirada</strong> — el cuerpo alterna el lado al que mira cada 60 ms y la hoja recorre 1,25 vueltas dejando estela, con el <em>mismo radio de 82 px</em> que el golpe. Que el rastro y el alcance midan lo mismo es lo que hace que el ataque se aprenda mirándolo una vez, sin leer ningún número.</li>
+            <li><b>La carga.</b> Cada 5 s se planta, <strong>marca en el suelo el pasillo</strong> por el que va a pasar, y sale disparado en línea recta. El rumbo se decide <em>al avisar</em>, no al salir: por eso se esquiva apartándose y no corriendo más que ella. Quita 35, y al acertar <strong>se para</strong> —embestir y seguir empujando sería imparable— y se queda 700 ms plantado, que es la ventana para castigarle.</li>
+          </ol>
+          <p>Los dos avisan con el <strong>mismo círculo rojo parpadeante que la granada</strong>. Para eso saqué el parpadeo y el círculo de dentro de <code>Granada</code> a dos funciones de <code>granadas.py</code>: el jugador tiene que reconocer «aquí va a doler» venga de donde venga, y eso no se consigue con dos dibujos parecidos, se consigue con el mismo.</p>
+          <p>Y no hace las dos cosas a la vez: mientras avisa o embiste no taja. Con los dos ataques solapados no habría forma de leerle.</p>
+          <p><b>La escolta de los jefes llega por fases, no de golpe.</b> Entrando los nueve con el jefe, el primer minuto era una avalancha y el resto un duelo en silencio: limpiar la escolta compraba calma permanente justo cuando el jefe empieza a pegar de verdad. Ahora el propio jefe la va llamando conforme le baja la vida — <b>vida entera:</b> uno; <b>3/4:</b> dos; <b>1/2:</b> dos; <b>1/4:</b> cuatro. Los mismos nueve, pero repartidos y de menos a más: el momento más cargado del combate es el final, que es donde tiene que estar.</p>
+          <p><b>Y la escolta es toda de cuerpo a cuerpo</b>, sin un solo tirador ni granadero. Con escolta de tiro, el plomo de la escolta y el del jefe se mezclaban en la misma pantalla y no había forma de saber cuál estabas esquivando; con granaderos, sus marcas rojas competían con las del jefe. Repartido: el <strong>jefe</strong> es el que te niega el espacio y la <strong>escolta</strong> la que no te deja quedarte quieto mirándolo. Cada uno hace una cosa y las dos se leen a la vez. <b>El fusilero es la excepción</b> y no trae ninguna: su carga a la bayoneta ya hace ese trabajo.</p>
+          <p>Un grupo entra <em>entero o no entra</em>: si el campo está en el techo de 18 franceses se queda pendiente y vuelve a intentarlo al frame siguiente. Meter medio grupo sería peor que esperar, porque el escalón de vida se gastaría y la mitad que falta no volvería nunca.</p>
+          <p><b>Hecho el tercero: el fusilero.</b> Sale del soldado de línea de siempre, escalado a 2× y con galón: banda dorada sobre la visera del chaco, placa dorada en el frente y un <strong>penacho blanco sobre rojo</strong> que es lo que le hace leerse como jefe desde el otro lado del mapa. El galón se queda todo en la cabeza y no baja al hombro, aunque ahí lo lleva el de sable: medida la anatomía de los 18 sprites, el chaco cae en las filas 0 a 6 y la cara en la 8 a la 11 <em>en los dieciocho</em>, pero a la altura del hombro los cuatro de disparar tienen el <strong>brazo estirado</strong> con el mosquete. Una charretera ahí saldría en el antebrazo, o desaparecería al disparar.</p>
+          <p>Los otros dos juegan con el suelo (el granadero) y con la distancia corta (el de sable); este juega con las <strong>líneas de fuego</strong>. Su plomo no cae del cielo con aviso: sale del mosquete, <em>viaja</em>, y ocupa un sitio durante todo el camino. Así que no se esquiva leyendo el suelo ni saliendo de un círculo — se esquiva colocándose. Y dispara sin tener que alinearse, al contrario que la tropa: si tuviera que ponerse a tu altura, bastaría con no ponerse nunca a la suya para desarmarlo.</p>
+          <ol>
+            <li><b>Por encima de 3/4 — el abanico.</b> Siete balas en arco, y la descarga son <strong>dos abanicos con los mismos ángulos</strong>, no uno.</li>
+            <li><b>De 3/4 a 1/4 — la cortina.</b> El mismo arco, más ancho (once balas, una pared de 540 px: más alta que el mapa, así que no se sale por los lados) y soltado <em>bala a bala</em> mientras barre, como un limpiaparabrisas, tres pasadas de ida y vuelta. El hueco del abanico está quieto y te colocas en él; el de la cortina se mueve, y hay que ir con él.</li>
+            <li><b>Por debajo de 1/4 — el fuego de plaza.</b> Anillos completos de 16 balas en todas las direcciones, saliendo del <em>pecho</em> y no de la punta del cañón (un anillo que sale del cañón se ve descentrado). Tres anillos, y cada uno <strong>girado un cuarto de paso</strong> respecto al anterior: el hueco por el que te colaste se mueve 25 px cada vez, y hay que seguirlo.</li>
+          </ol>
+          <p><b>Y aquí salió el hallazgo que ordena todo el ajuste de este jefe: el hueco se mide en píxeles, no en grados.</b> Con una apertura fija en grados, el hueco entre dos balas crece con la distancia — medido, 53 px a 260 de distancia (esquivable: el jugador mide 36 de alto) y <strong>27 px a 154</strong> (imposible: 30 de daño inevitables por descarga). O sea que la justicia del ataque dependía de una distancia que el jefe no controla, porque quien decide dónde ponerse es el jugador. Poniendo el hueco en píxeles a la altura del jugador, el abanico se abre y se cierra solo: medido de 100 a 350 px de distancia, el hueco del eje de tiro va de 46 a 53 px, siempre por encima de los 36 del jugador. Y es <strong>el mismo hueco en las tres fases</strong>: se aprende una sola medida y sirve para todo el combate.</p>
+          <p><b>El segundo hallazgo desatasca el ajuste.</b> Subir el daño y dejarlo esquivable tiraban en direcciones contrarias: pasar de 7 a 9 balas doblaba el daño (de 8 a 16 por segundo) pero se llevaba los sitios a salvo del 13% al 2%. La salida es <strong>repetir la misma descarga con los mismos ángulos</strong>: no cierra ningún hueco, porque los ángulos no cambian, así que quien está en un hueco sigue estándolo y quien no, cobra dos veces. De ahí el abanico doble y la cortina de ida y vuelta. Y el segundo abanico <em>no vuelve a apuntar</em>: va a donde estabas, y aprovechar eso es el juego; reapuntando sería un ataque que te persigue, que es lo del jefe de sable y no lo suyo.</p>
+          <div class="medido"><b>El ritmo, medido, y aquí hubo que rehacerlo.</b> Con 1,4 s de recarga había plomo en pantalla el <b>98%</b> del tiempo y en la fase del abanico arrancaba una descarga cada <b>2,1 s</b>: eso no es un jefe exigente, es un jefe que no calla, y encima tapaba su propio aviso — el arco rojo del suelo se lee mal con la pantalla llena del plomo de la descarga anterior. La recarga subió a <b>4 s</b>. Con la carga intercalada, el guion del combate sale así: descarga, <b>1,9 s</b>, carga, <b>5,2 s</b>, descarga… un ataque cada 3,6 s de media, nunca dos veces el mismo seguido, y <b>calma de verdad el 52–65%</b> del tiempo. Contra un blanco quieto hace 7,5 / 7,5 / 8,6 de daño por segundo según la fase. Cada bala suya quita 15 y no los 25 de la tropa, porque son muchas a la vez; por descarga son 14 balas el abanico, 33 la cortina y 48 el fuego de plaza.</div>
+          <p><b>Y el paraguas es un paraguas porque se ve abrirse.</b> Dos cosas lo hacen, y las dos son de ritmo, no de forma. La primera: <strong>antes de cada descarga apunta</strong>. Se planta medio segundo, se le marcan en el suelo los rayos rojos por los que va a salir el plomo —uno por bala, y en el fuego de plaza los dieciséis a la vez, que es una estrella— y entonces empieza a salir. Los otros dos jefes avisan con el círculo rojo de la granada; este avisa con el <em>arco</em>, porque lo suyo no es un sitio del suelo, es una dirección.</p>
+          <p>La segunda: <strong>su plomo va más lento</strong>, 5 píxeles por frame contra los 8 de la tropa. A 8, las balas cruzan la pantalla en dos segundos y lo que se ve es un pestañeo; a 5 tardan tres y pico y se ve el chorro <em>abrirse</em>, que es la forma que hay que leer. Y como se ve venir, se puede andar entre las balas en vez de tener que adivinar el hueco de antemano.</p>
+          <p>El aviso <em>se recalcula cada frame</em>, no se fija al empezar a apuntar. Fijándolo, bastaría con salirse del arco durante el aviso y la descarga entera caía al aire — con plomo lento, eso es esquivarla gratis. El aviso dice «va a disparar, y por ahí», no «va a disparar ahí»; los ángulos de verdad se fijan al soltar. Y apuntando está <strong>plantado</strong>, igual que el de sable cuando se recupera de la carga: mientras suelta el paraguas es un blanco quieto, y esa es la ventana para castigarle.</p>
+          <p><b>Y entre descarga y descarga embiste a la bayoneta.</b> Los dos ataques <em>se turnan</em>: descarga, carga, descarga, carga, y nunca dos veces el mismo seguido. Eso es lo que arregla el problema de fondo de un jefe de tiro con cuatro segundos de recarga — con solo disparar, esos cuatro segundos eran cuatro segundos de nada y el combate era esperar. Turnándose, siempre viene algo, pero nunca lo mismo.</p>
+          <p>La embestida es la misma maniobra que la del jefe de sable, con otros números: sale desde más lejos (340 px contra 320) y más rápido (13 px por frame contra 11), porque tiene que cruzar todos sus 210 px de puesto de tiro para llegar; quita 30 y se queda plantado <strong>900 ms</strong> al acabar, más que el de sable, porque acaba pegado a ti con un mosquete y eso tiene que costarle algo. Y avisando y embistiendo cambia al fotograma de disparar, que es el que lleva el <strong>mosquete por delante</strong>: con el de andar el mosquete va al hombro y la embestida se leía como un paseo.</p>
+          <p>Si te quedas más lejos de lo que la embestida alcanza, <em>dispara igual y se guarda el turno</em>. Sin eso, plantándose en el fondo del mapa se le desactivaba medio jefe.</p>
+          <p><b>Y por eso este pelea sin guardias</b>, el único de los cuatro. La escolta estaba para que no te quedases quieto mirando al jefe, y de eso ya se encarga él solo con la carga. Es un interruptor por clase (<code>LLAMA_ESCOLTA</code>), no un caso especial escondido en <code>main</code>.</p>
+          <p><b>La embestida se sacó a una pieza compartida</b> (<code>class embestida</code>) en vez de copiarla. Es la mecánica más delicada de los jefes —el rumbo se decide al avisar y no al salir, se para al acertar, deja ventana de recuperación—, y tenerla dos veces es garantizar que un día se arregle en una copia y no en la otra. Lo que cambia de un jefe a otro son ocho números, que ahora son atributos de clase. Las 49 comprobaciones del jefe de sable pasaron sin tocar una: eso es lo que dice que el refactor no cambió nada.</p>
+          <p><b>Y se planta a 210 px, no a 260.</b> A 260, con el jugador en el centro del mapa, la distancia no cabe: el jefe se quedaba pegado al borde y medio fuera de pantalla. Eso es donde acaba el voltigeur —y su comentario ya lo decía—, pero para un jefe con barra de vida propia no vale. Como el hueco ya no depende de la distancia, el puesto pudo volver a un sitio razonable sin romper nada.</p>
+          <p><b>Y de paso, un fallo que llevaban los tres jefes:</b> morían con el cadáver de su tropa a tamaño normal, o sea <em>encogiéndose a la mitad</em> en el último frame. Ahora el cadáver se escala igual que el cuerpo (×2, que a escala entera sale limpio) y se guarda cacheado: un cadáver se escala una vez en toda la partida, no una vez por frame.</p>
+          <p><b>Y la rueda ya está construida.</b> Los jefes entran en la oleada 8 y cada 5 desde ahí, en rueda; hoy la rueda tiene tres y los va rotando. Añadir el que falta es una clase, su habilidad, su escalado y una línea en <code>RUEDA_DE_JEFES</code>. El jefe entra <em>el primero</em> de su oleada y no cuenta ni para el cupo ni para el techo: la oleada es suya.</p>
+          <p><b>Lo que queda:</b> el voltigeur (rápido y de cadencia alta).</p>
+          <div class="chips"><span class="chip esfuerzo">XL</span><span class="chip alto">impacto alto</span><span class="chip">3 de 4 jefes hechos</span></div>
         </div>
       </article>
     </div>
@@ -702,6 +809,7 @@
       <div>
         <h2>Caro, o bloqueado por arte</h2>
         <p>Ideas buenas cuyo coste real hay que saber antes de empezarlas. Las pongo aquí para que la decisión sea consciente, no para que se hagan.</p>
+        <p><b>Y ahora se sabe dónde está el límite:</b> la cirugía que sacó al voltigeur, al granadero y al oficial sirve para cambiar colores y añadir detalles a una <em>pose que ya existe</em>. Un caballo o un apuntado en diagonal es dibujar de cero, y eso se intentó a mano y salió mal. Estas tres siguen necesitando sprites de verdad.</p>
       </div>
     </div>
 

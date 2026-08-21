@@ -82,3 +82,10 @@ def dibujar_aura(win, imagen, x, y, mirando_izq, ancho_referencia, alto_referenc
     dx, dy = desplazamiento(imagen, ancho_referencia, alto_referencia, mirando_izq)
     for desplazaX, desplazaY in DESPLAZAMIENTOS_DEL_HALO:
         win.blit(halo, (x + dx + desplazaX, y + dy + desplazaY))
+
+def dibujar_silueta(win, imagen, x, y, mirando_izq, ancho_referencia, alto_referencia, color, alfa):
+    """La silueta plana, de una sola pasada. Para estelas: un halo seria cuatro veces mas denso."""
+    win.blit(aura(imagen, color, alfa),
+             tuple(coordenada + desplazada for coordenada, desplazada in
+                   zip((x, y), desplazamiento(imagen, ancho_referencia, alto_referencia,
+                                              mirando_izq))))

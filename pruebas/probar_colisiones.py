@@ -78,8 +78,10 @@ comprobar("caen los 4 muertos de golpe", len(caidos) == 4 and len(vivos) == 2,
 comprobar("la lista original no se toca", len(enemigos) == 6)
 
 # ---- 7. contacto: con la gracia entre golpes ya no son 105 de vida por segundo ----
+# El contacto solo lo cobran los que van con MOSQUETE. Al que lleva sable no se le paga por
+# tocarlo: su danio lo hace el tajo, que avisa un segundo antes (ver probar_sable)
 soldado = J.jugador(200, 200)
-frances = E.enemigo(200, 200, 0, 0)
+frances = E.enemigoDistancia(200, 200, 0, 0)
 frances.actualizarRect()
 inicio = pygame.time.get_ticks()
 frames = 0
@@ -92,6 +94,14 @@ comprobar("un segundo pegado a un enemigo cuesta unos pocos golpes, no uno por f
           perdida <= (golpes_esperados + 1) * J.DANIO_CONTACTO,
           f"{frames} frames, vida perdida={perdida}")
 comprobar("pero el contacto duele algo", perdida >= J.DANIO_CONTACTO, f"perdida={perdida}")
+
+conSable = E.enemigo(200, 200, 0, 0)
+conSable.actualizarRect()
+vidaAntes = soldado.vida
+for _ in range(60):
+    soldado.sufrirContacto([conSable])
+comprobar("y al que lleva sable no se le paga por tocarlo: su danio es el tajo",
+          soldado.vida == vidaAntes, f"vida {soldado.vida} de {vidaAntes}")
 
 # ---- 8. las balas enemigas hieren al jugador una sola vez ----
 soldado = J.jugador(200, 200)

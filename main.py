@@ -1,3 +1,4 @@
+import os
 import pygame
 import sys
 
@@ -10,8 +11,8 @@ import oleadas
 import records
 import sablazos
 from jugador import jugador
-from enemigo import (enemigo, enemigoDistancia, voltigeur, oficial, granadero,
-                     puntoDeAparicion, cadaveresVigentes, aplicarMando)
+from enemigo import (enemigo, enemigoDistancia, voltigeur, oficial, granadero, jefeGranadero,
+                     jefeSable, jefeFusilero, puntoDeAparicion, cadaveresVigentes, aplicarMando)
 
 
 pygame.init()
@@ -24,6 +25,36 @@ FPS = 30
 MAX_ENEMIGOS = 18
 # Tecla con la que se gasta lo que se lleva en la mochila
 TECLA_MOCHILA = pygame.K_q
+# Bayonetazo y dash. Van por pulsacion y no por mantener, como la mochila: son gestos, y
+# mantenerlos pulsados no deberia dispararlos en bucle
+TECLA_BAYONETA = pygame.K_e
+TECLAS_DASH = (pygame.K_LSHIFT, pygame.K_RSHIFT)
+# ##################################### Modo de pruebas ###############################################
+# Para poder probar a mano sin jugarse una partida entera: llegar a la oleada del jefe eran ocho
+# oleadas de peaje.
+#
+# ENCENDIDO. Mientras lo este, lo dice una linea en pantalla, porque un juego que se comporta
+# distinto sin avisar es una trampa para quien lo prueba. Para apagarlo, cualquiera de las dos:
+#
+#     PRUEBAS=0 python main.py          (sin tocar el codigo)
+#     MODO_PRUEBAS = False              (aqui abajo, a mano)
+#
+# Conviene apagarlo antes de ensenarle el juego a alguien: estas teclas meten jefes y hacen
+# invulnerable, y una I sin querer deja la partida sin sentido.
+MODO_PRUEBAS = os.environ.get('PRUEBAS', '1') != '0'
+# En que oleada empezar. Por defecto la primera, o sea que la partida normal no cambia; con
+# OLEADA=8 se empieza ahi, y entonces el soldado arranca ya con todas las mejoras, que es lo que
+# tendria al llegar jugando: con el mosquete de recluta un jefe de 2400 de vida son dos minutos y
+# medio de disparar, y eso no prueba nada
+OLEADA_DE_PRUEBAS = int(os.environ.get('OLEADA', oleadas.PRIMERA_OLEADA))
+# Teclas del modo de pruebas. Solo hacen algo con MODO_PRUEBAS encendido
+TECLA_PRUEBAS_JEFE = pygame.K_j
+TECLA_PRUEBAS_SIGUIENTE_OLEADA = pygame.K_n
+TECLA_PRUEBAS_INMUNE = pygame.K_i
+TECLA_PRUEBAS_FASE = pygame.K_f
+# A que jefe saca la tecla J. Se pone a mano el que se este trabajando, que es lo que se quiere
+# mirar cien veces seguidas; con None rota por la rueda entera, uno por pulsacion
+JEFE_DE_PRUEBAS = oleadas.JEFE_FUSILERO
 # Escenas del juego
 ESCENA_MENU = "menu"
 ESCENA_PARTIDA = "partida"
@@ -132,10 +163,88 @@ instanteInicioPartida = 0
 #la marca guardada, y si la partida que acaba de terminar la ha batido
 record = records.cargar()
 recordBatido = False
+#en el modo de pruebas, si el soldado es invulnerable, y por que jefe de la rueda va la tecla J
+inmuneDePruebas = False
+turnoDelJefeDePruebas = 0
 #la oleada en curso y la calma entre una y otra
 oleada = None
 enCalma = False
 instanteFinCalma = 0
+
+
+def equiparComoCoronel(soldado, marcador):
+    """Le da al soldado todas las mejoras y el rango maximo, como si hubiera llegado jugando.
+
+    Solo lo usa el modo de pruebas: empezar en una oleada alta con el mosquete de recluta no
+    prueba nada, porque lo que se quiere ver es la pelea, no el tiempo que se tarda en matar.
+    """
+    marcador.rango = len(ascensos.RANGOS) - 1
+    marcador.puntos = ascensos.PUNTOS_POR_RANGO[-1]
+    for clave in (ascensos.CLAVE_RECARGA, ascensos.CLAVE_VIDA, ascensos.CLAVE_DANIO):
+        #se aplica hasta que deje de cambiar: cada mejora tiene su propio tope
+        for _ in range(10):
+            antes = (soldado.recarga, soldado.vidaMaxima, soldado.danioBala)
+            ascensos.aplicar(soldado, clave)
+            if (soldado.recarga, soldado.vidaMaxima, soldado.danioBala) == antes:
+                break
+    soldado.vida = soldado.vidaMaxima
+
+
+def atajoDePruebas(tecla):
+    """Las teclas del modo de pruebas. Sin el modo encendido, ni una hace nada."""
+    global enCalma, instanteFinCalma, inmuneDePruebas
+    if not MODO_PRUEBAS:
+        return False
+    if tecla == TECLA_PRUEBAS_JEFE:
+        #un jefe aqui y ahora, sin esperar a que toque su oleada. Si JEFE_DE_PRUEBAS dice cual,
+        #sale siempre ese; si no, rota por la rueda, porque con cuatro jefes habria que llegar a la
+        #oleada 23 para poder mirar el ultimo
+        global turnoDelJefeDePruebas
+        if JEFE_DE_PRUEBAS:
+            cual = JEFE_DE_PRUEBAS
+        else:
+            cual = oleadas.RUEDA_DE_JEFES[turnoDelJefeDePruebas % len(oleadas.RUEDA_DE_JEFES)]
+            turnoDelJefeDePruebas += 1
+        entrarEnBatalla(oleadas.JEFE, cual)
+        return True
+    if tecla == TECLA_PRUEBAS_SIGUIENTE_OLEADA:
+        #se limpia el campo y se vacia el cupo: el juego pasa de oleada por su propio camino
+        for enemigo_vivo in enemies:
+            enemigo_vivo.vida = 0
+        oleada.pendientes = dict((tipo, 0) for tipo in oleada.pendientes)
+        return True
+    if tecla == TECLA_PRUEBAS_INMUNE:
+        inmuneDePruebas = not inmuneDePruebas
+        return True
+    if tecla == TECLA_PRUEBAS_FASE:
+        #le baja la vida al jefe hasta justo por debajo del siguiente tramo, para ver sus fases.
+        #A los jefes que no cambian de ataque por vida no se les toca: dejarlos a un golpe de morir
+        #no ensenia nada y encima confunde
+        for enemigo_vivo in enemies:
+            if not getattr(enemigo_vivo, 'ES_JEFE', False):
+                continue
+            tramo = siguienteTramoDeVida(enemigo_vivo)
+            if tramo is not None:
+                enemigo_vivo.vida = tramo
+        return True
+    return False
+
+
+def siguienteTramoDeVida(jefe):
+    """La vida con la que el jefe entra en su siguiente fase, o None si no tiene fases.
+
+    Devolver None y no un numero importa: hay jefes que no cambian de ataque por vida (el de
+    sable lleva sus dos ataques a la vez), y para esos la tecla no debe hacer nada.
+    """
+    umbrales = sorted(getattr(jefe, 'UMBRALES_DE_FASE', ()), reverse=True)
+    if not umbrales:
+        return None
+    for umbral in umbrales:
+        objetivo = int(jefe.vidaMaxima * umbral)
+        if jefe.vida > objetivo:
+            return objetivo
+    #ya esta en el ultimo tramo: se le deja a un golpe, para poder ver el final
+    return 1
 
 
 def reiniciarPartida():
@@ -144,8 +253,9 @@ def reiniciarPartida():
     global granadasEnElAire, estallidos, sablazosEnElAire
     global avisoObjeto, avisoObjetoMotivo, avisoObjetoInstante
     global instanteInicioPartida, recordBatido
-    global oleada, enCalma, instanteFinCalma
+    global oleada, enCalma, instanteFinCalma, inmuneDePruebas
     ahora = pygame.time.get_ticks()
+    inmuneDePruebas = False
     player = jugador(250, 250)
     balas = []
     balasEnemigas = []
@@ -162,7 +272,10 @@ def reiniciarPartida():
     instanteInicioPartida = ahora
     recordBatido = False
     #la partida arranca con la calma de la primera oleada, no en medio de la batalla
-    oleada = oleadas.Oleada(oleadas.PRIMERA_OLEADA, ahora)
+    primera = OLEADA_DE_PRUEBAS if MODO_PRUEBAS else oleadas.PRIMERA_OLEADA
+    if MODO_PRUEBAS and primera > oleadas.PRIMERA_OLEADA:
+        equiparComoCoronel(player, progreso)
+    oleada = oleadas.Oleada(primera, ahora)
     enCalma = True
     instanteFinCalma = ahora + oleadas.DURACION_CALMA
 
@@ -175,6 +288,8 @@ def compensarPausa(milisegundos):
     oleada.instanteUltimaEntrada += milisegundos
     player.instanteUltimoDisparo += milisegundos
     player.instanteUltimoGolpe += milisegundos
+    player.instanteUltimaEstocada += milisegundos
+    player.instanteUltimoDash += milisegundos
     for enemy in enemies:
         enemy.instanteUltimoDisparo += milisegundos
     for cadaver in cadaveres:
@@ -192,6 +307,16 @@ def compensarPausa(milisegundos):
         enemy.instanteInicioArmado += milisegundos
         enemy.instanteUltimoTajo += milisegundos
         enemy.instanteInicioAlzado += milisegundos
+        #los relojes de la carga del jefe de sable; los demas enemigos no los tienen
+        if hasattr(enemy, 'instanteUltimaCarga'):
+            enemy.instanteUltimaCarga += milisegundos
+            enemy.instanteInicioCarga += milisegundos
+        #y el compas con el que los jefes van soltando su rafaga o su descarga. Sin esto, volver
+        #de la pausa le regalaba al jefe la siguiente granada o el siguiente anillo de plomo
+        for reloj in ('instanteDeLaUltimaDeLaRafaga', 'instanteDeLaUltimaDeLaDescarga',
+                      'instanteInicioPunteria'):
+            if hasattr(enemy, reloj):
+                setattr(enemy, reloj, getattr(enemy, reloj) + milisegundos)
     avisoObjetoInstante += milisegundos
     instanteInicioPartida += milisegundos
     if player.instanteFinInmunidad:
@@ -239,19 +364,37 @@ def drawWindow():
         cosa.dibujar(win, ahora)
     # indicadores por encima de la batalla
     hud.dibujarPanelJugador(win, player, progreso, WINX, oleada.numero)
+    hud.dibujarVidaJefe(win, enemies, WINX)
     hud.dibujarEfectos(win, player, ahora)
     hud.dibujarAvisoObjeto(win, WINX, avisoObjeto, avisoObjetoMotivo,
                            avisoObjetoInstante, ahora)
     hud.dibujarMochila(win, player, WINY)
+    if MODO_PRUEBAS:
+        hud.dibujarAvisoDePruebas(win, WINX, WINY, inmuneDePruebas)
     if enCalma:
         hud.dibujarAvisoOleada(win, WINX, oleada.numero, instanteFinCalma - ahora)
     # actualizacion de la pantalla
     presentar()
 
-def entrarEnBatalla(tipo):
+def entrarEnBatalla(tipo, cual=None):
+    """Mete en el campo un frances del tipo que se pida.
+
+    Con 'cual' se puede forzar QUE jefe entra, en vez de dejarlo en manos de la rueda. Lo usa el
+    atajo del modo de pruebas, que tiene que poder sacar cualquiera de los cuatro sin esperar a
+    que le toque su oleada.
+    """
     # Entra por el borde, nunca encima del jugador
     x, y = puntoDeAparicion(player.x, player.y)
-    if tipo == oleadas.OFICIAL:
+    if tipo == oleadas.JEFE:
+        #cual de los jefes toca lo dice la rueda, no el tipo: el cupo solo dice "aqui va jefe"
+        cuales = {oleadas.JEFE_GRANADERO: jefeGranadero, oleadas.JEFE_SABLE: jefeSable,
+                  oleadas.JEFE_FUSILERO: jefeFusilero}
+        #si la oleada no es de jefe no hay turno de rueda, y aun asi hay que dar uno
+        elegido = cual or oleadas.jefeDeLaOleada(oleada.numero) or oleadas.RUEDA_DE_JEFES[0]
+        enemies.append(cuales[elegido](x, y, player.x, player.y))
+        #su escolta no entra aqui: la llama el propio jefe conforme le baja la vida, en
+        #llamarEscoltaDeLosJefes
+    elif tipo == oleadas.OFICIAL:
         enemies.append(oficial(x, y, player.x, player.y))
     elif tipo == oleadas.GRANADERO:
         enemies.append(granadero(x, y, player.x, player.y))
@@ -263,6 +406,29 @@ def entrarEnBatalla(tipo):
         enemies.append(enemigoDistancia(x, y, player.x, player.y, enemies))
     else:
         enemies.append(enemigo(x, y, player.x, player.y))
+
+
+def llamarEscoltaDeLosJefes():
+    """Mete la escolta que le toque a cada jefe segun la vida que le quede.
+
+    Se llama cada frame. Los grupos salen de uno en uno conforme el jefe cruza cada escalon de
+    vida, y un grupo entra entero o no entra: si no cabe se queda pendiente y vuelve a intentarlo
+    el frame siguiente, cuando el jugador haya hecho sitio. Meter medio grupo seria peor que
+    esperar, porque el escalon se gastaria y la mitad que falta no volveria nunca.
+    """
+    #se saca la lista de jefes antes de meter tropa: entrarEnBatalla escribe en enemies, y no se
+    #recorre una lista a la que se le esta anadiendo
+    for jefe in [uno for uno in enemies
+                 if getattr(uno, 'ES_JEFE', False) and uno.vivo and uno.LLAMA_ESCOLTA]:
+        while jefe.oleadasDeEscoltaPedidas < len(oleadas.ESCOLTA_POR_FASES):
+            umbral, tipos = oleadas.ESCOLTA_POR_FASES[jefe.oleadasDeEscoltaPedidas]
+            if jefe.vida / float(jefe.vidaMaxima) > umbral:
+                break
+            if len(enemies) + len(tipos) > MAX_ENEMIGOS:
+                break
+            jefe.oleadasDeEscoltaPedidas += 1
+            for tipoDeEscolta in tipos:
+                entrarEnBatalla(tipoDeEscolta)
 
 
 def llevarOleada(ahora):
@@ -434,6 +600,12 @@ def partida():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 return ESCENA_PAUSA
             #usar lo que se lleve en la mochila: es una pulsacion, no un mantener
+            if event.type == pygame.KEYDOWN and atajoDePruebas(event.key):
+                continue
+            if event.type == pygame.KEYDOWN and event.key == TECLA_BAYONETA:
+                player.estocada(enemies, sablazosEnElAire)
+            if event.type == pygame.KEYDOWN and event.key in TECLAS_DASH:
+                player.dashear()
             if event.type == pygame.KEYDOWN and event.key == TECLA_MOCHILA:
                 usado = objetos.usar(player, pygame.time.get_ticks())
                 if usado:
@@ -446,12 +618,15 @@ def partida():
         balasEnemigas = colisiones.resolverBalas(balasEnemigas, [player], WINX, WINY)
         #Enemigos
 
+        #la escolta que pidan los jefes, antes de mover a nadie
+        llamarEscoltaDeLosJefes()
         #el aura de los oficiales, antes de moverlos: pone a cada uno su velocidad de este frame
         aplicarMando(enemies)
         for enemy in enemies:
             enemy.disparar(balasEnemigas)
             enemy.lanzar(granadasEnElAire, player.rect.center)
-            enemy.atacar(player.rect, sablazosEnElAire)
+            enemy.atacar(player, sablazosEnElAire)
+            enemy.cargar(player)
             enemy.pathFinding(player.x,player.y)
             enemy.checkEstadoVida()
         enemies, caidos = colisiones.separarCaidos(enemies)
@@ -480,9 +655,13 @@ def partida():
         sablazosEnElAire = sablazos.limpiar(sablazosEnElAire, ahora)
 
         keys = pygame.key.get_pressed()
-        player.caminar(keys)
+        #mientras dura el dash, el dash manda sobre las teclas de andar
+        if not player.avanzarDash():
+            player.caminar(keys)
         player.disparar(keys,balas)
         player.sufrirContacto(enemies)
+        if MODO_PRUEBAS and inmuneDePruebas:
+            player.vida = player.vidaMaxima
         llevarOleada(ahora)
         drawWindow()
         ##Muerte del jugador
